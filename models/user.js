@@ -1,0 +1,67 @@
+const bcrypt = require('bcryptjs'); // For password hashing
+
+module.exports = (sequelize, DataTypes) => {
+  const User = sequelize.define('User', {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
+      allowNull: false
+    },
+    school_id: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: {
+        model: 'schools', // Refers to the 'schools' table
+        key: 'id'
+      }
+    },
+    email: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+      validate: {
+        isEmail: true
+      }
+    },
+    password: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    role: {
+      type: DataTypes.ENUM('super_admin', 'proprietor'),
+      allowNull: false
+    }
+  }, {
+    tableName: 'users', // Explicitly define table name
+    timestamps: true,
+    hooks: {
+      beforeCreate: async (user) => {
+        if (user.password) {
+          const salt = await bcrypt.genSalt(10);
+          user.password = await bcrypt.hash(user.password, salt);
+        }
+      },
+      beforeUpdate: async (user) => {
+        if (user.changed('password')) {
+          const salt = await bcrypt.genSalt(10);
+          user.password = await bcrypt.hash(user.password, salt);
+        }
+      }
+    }
+  });
+
+  User.associate = (models) => {
+    User.belongsTo(models.School, {
+      foreignKey: 'school_id',
+      as: 'school'
+    });
+  };
+
+  // Instance method to compare passwords
+  User.prototype.comparePassword = async function (candidatePassword) {
+    return bcrypt.compare(candidatePassword, this.password);
+  };
+
+  return User;
+};
