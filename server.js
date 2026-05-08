@@ -9,20 +9,22 @@ async function emergencySetup() {
         const plainPassword = 'Yunus081@';
         const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
-        // This checks if the user exists. If yes, it updates. If no, it creates.
-        const existingUser = await db.User.findOne({ where: { email } });
+        // Check if user exists
+        const user = await db.User.findOne({ where: { email } });
         
-        if (existingUser) {
-            await existingUser.update({ password: hashedPassword, role: 'super_admin' });
-            console.log('✅ SUPER ADMIN UPDATED SUCCESSFULLY');
+        if (user) {
+            // If user exists, just update the password
+            await user.update({ password: hashedPassword, role: 'superadmin' });
+            console.log('✅ SUPER ADMIN PASSWORD UPDATED');
         } else {
-            await db.User.create({
-                email: email,
-                password: hashedPassword,
-                role: 'super_admin',
-                school_id: null // Super admin might not have a school_id initially
+            // If creating NEW, we MUST provide a school_id (using 1 as a placeholder)
+            await db.User.create({ 
+                email, 
+                password: hashedPassword, 
+                role: 'superadmin',
+                school_id: 1 // Adding this to satisfy the database rule!
             });
-            console.log('✅ NEW SUPER ADMIN CREATED SUCCESSFULLY');
+            console.log('✅ NEW SUPER ADMIN CREATED WITH SCHOOL_ID 1');
         }
     } catch (err) {
         console.error('❌ Emergency Setup Failed:', err);
