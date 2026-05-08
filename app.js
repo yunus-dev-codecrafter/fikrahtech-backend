@@ -1,7 +1,13 @@
 require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
 const app = express();
 const allRoutes = require('./routes'); // Import the consolidated routes
+
+app.use(cors({
+  origin: 'https://fikrah.netlify.app',
+  credentials: true
+}));
 
 app.use(express.json()); // For parsing application/json request bodies
 
