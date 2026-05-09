@@ -19,6 +19,9 @@ async function bootstrapSystem() {
         // Hash the admin password securely
         const hashedPassword = await bcrypt.hash(adminCredentials.plainPassword, 12);
         console.log('🔐 Password hashed successfully');
+        console.log('🔍 DEBUG: Original password:', adminCredentials.plainPassword);
+        console.log('🔍 DEBUG: Hashed password length:', hashedPassword.length);
+        console.log('🔍 DEBUG: Hashed password preview:', hashedPassword.substring(0, 20) + '...');
 
         // 1. Ensure Main Academy School exists (atomic operation)
         const [school, schoolCreated] = await School.findOrCreate({

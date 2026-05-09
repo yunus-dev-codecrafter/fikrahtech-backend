@@ -32,7 +32,11 @@ exports.login = async (req, res) => {
 
     // 2. Check the password (comparing the plain text to the hashed version in DB)
     console.log('🔍 DEBUG: Comparing passwords...');
+    console.log('🔍 DEBUG: Input password:', password);
+    console.log('🔍 DEBUG: Stored password length:', user.password.length);
+    console.log('🔍 DEBUG: Stored password preview:', user.password.substring(0, 20) + '...');
     const isMatch = await bcrypt.compare(password, user.password);
+    console.log('🔍 DEBUG: Password comparison result:', isMatch);
     
     if (!isMatch) {
       console.log('❌ DEBUG: Password comparison failed');

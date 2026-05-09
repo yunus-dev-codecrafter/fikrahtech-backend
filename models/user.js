@@ -38,14 +38,20 @@ module.exports = (sequelize, DataTypes) => {
     hooks: {
       beforeCreate: async (user) => {
         if (user.password) {
+          console.log('🔍 DEBUG: User model beforeCreate hook triggered');
+          console.log('🔍 DEBUG: Password before hashing:', user.password ? 'PROVIDED' : 'NOT_PROVIDED');
           const salt = await bcrypt.genSalt(10);
           user.password = await bcrypt.hash(user.password, salt);
+          console.log('🔍 DEBUG: Password after model hook hashing:', user.password.substring(0, 20) + '...');
         }
       },
       beforeUpdate: async (user) => {
         if (user.changed('password')) {
+          console.log('🔍 DEBUG: User model beforeUpdate hook triggered');
+          console.log('🔍 DEBUG: Password before hashing:', user.password ? 'PROVIDED' : 'NOT_PROVIDED');
           const salt = await bcrypt.genSalt(10);
           user.password = await bcrypt.hash(user.password, salt);
+          console.log('🔍 DEBUG: Password after model hook hashing:', user.password.substring(0, 20) + '...');
         }
       }
     }
