@@ -11,7 +11,7 @@ async function bootstrapSystem() {
         
         // Default admin credentials (CHANGE IN PRODUCTION)
         const adminCredentials = {
-            name: 'Yunus Abdulhameed',
+            name: 'Yunus Abdulhamid',
             email: 'yunusabdulhameed1@gmail.com',
             plainPassword: 'Admin@123' // TODO: Change in production
         };

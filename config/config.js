@@ -6,7 +6,8 @@ function parseDatabaseUrl(url) {
   
   try {
     const urlObj = new URL(url);
-    return {
+    console.log('🔍 DEBUG: Parsing DATABASE_URL:', url);
+    const config = {
       host: urlObj.hostname,
       port: urlObj.port || 3306,
       database: urlObj.pathname.substring(1), // Remove leading slash
@@ -14,6 +15,14 @@ function parseDatabaseUrl(url) {
       password: urlObj.password,
       ssl: { require: true, rejectUnauthorized: false }
     };
+    console.log('✅ DEBUG: Parsed config:', {
+      host: config.host,
+      port: config.port,
+      database: config.database,
+      username: config.username,
+      hasPassword: !!config.password
+    });
+    return config;
   } catch (error) {
     console.error('❌ Invalid DATABASE_URL format:', error);
     return null;
