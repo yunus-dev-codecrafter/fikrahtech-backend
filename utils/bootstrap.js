@@ -16,13 +16,6 @@ async function bootstrapSystem() {
             plainPassword: 'Admin@123' // TODO: Change in production
         };
 
-        // Hash the admin password securely
-        const hashedPassword = await bcrypt.hash(adminCredentials.plainPassword, 12);
-        console.log('🔐 Password hashed successfully');
-        console.log('🔍 DEBUG: Original password:', adminCredentials.plainPassword);
-        console.log('🔍 DEBUG: Hashed password length:', hashedPassword.length);
-        console.log('🔍 DEBUG: Hashed password preview:', hashedPassword.substring(0, 20) + '...');
-
         // 1. Ensure Main Academy School exists (atomic operation)
         const [school, schoolCreated] = await School.findOrCreate({
             where: { id: 1 },
@@ -34,19 +27,14 @@ async function bootstrapSystem() {
                 current_term: 'First Term'
             }
         });
+        console.log('✅ SCHOOL CHECK COMPLETE');
 
-        if (schoolCreated) {
-            console.log('✅ Main Academy School created successfully');
-        } else {
-            console.log('ℹ️ Main Academy School already exists');
-        }
-
-        // 2. Create or Update Super Admin (atomic operation)
+        // 2. Create or Update Super Admin (atomic operation) - Use plain text, let model hooks hash it
         const [user, userCreated] = await User.findOrCreate({
             where: { email: adminCredentials.email },
             defaults: {
                 email: adminCredentials.email,
-                password: hashedPassword,
+                password: adminCredentials.plainPassword, // Let User model hooks handle hashing
                 role: 'super_admin',
                 school_id: school.id,
                 name: adminCredentials.name
@@ -59,9 +47,9 @@ async function bootstrapSystem() {
             console.log(`👤 Name: ${adminCredentials.name}`);
             console.log(`🏫 School ID: ${school.id}`);
         } else {
-            // Update existing user's password and role
+            // Update existing user's password and role - Use plain text, let model hooks hash it
             await user.update({
-                password: hashedPassword,
+                password: adminCredentials.plainPassword, // Let User model hooks handle hashing
                 role: 'super_admin',
                 school_id: school.id,
                 name: adminCredentials.name

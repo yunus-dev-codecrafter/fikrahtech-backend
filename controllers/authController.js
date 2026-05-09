@@ -23,6 +23,7 @@ exports.login = async (req, res) => {
       });
     }
 
+    console.log('User found in DB:', user.email);
     console.log('✅ DEBUG: User found:', {
       id: user.id,
       email: user.email,
@@ -36,6 +37,7 @@ exports.login = async (req, res) => {
     console.log('🔍 DEBUG: Stored password length:', user.password.length);
     console.log('🔍 DEBUG: Stored password preview:', user.password.substring(0, 20) + '...');
     const isMatch = await bcrypt.compare(password, user.password);
+    console.log('Password match result:', isMatch);
     console.log('🔍 DEBUG: Password comparison result:', isMatch);
     
     if (!isMatch) {
