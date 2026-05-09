@@ -8,4 +8,7 @@ router.post('/schools/register', adminController.registerSchool);
 // Route for Super Admin to toggle the blocked status of a school
 router.put('/schools/:schoolId/toggle-block', adminController.toggleSchoolBlockStatus);
 
+// Route for Super Admin to manage school subscriptions
+router.put('/schools/:schoolId/subscription', adminController.updateSchoolSubscription);
+
 module.exports = router;

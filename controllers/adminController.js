@@ -1,4 +1,4 @@
-const { School, User, sequelize } = require('../models');
+const { User, School } = require('../models');
 const bcrypt = require('bcryptjs'); // For password hashing (though handled by model hook, good to have for clarity)
 
 /**
@@ -79,5 +79,70 @@ exports.toggleSchoolBlockStatus = async (req, res) => {
   } catch (error) {
     console.error('Error toggling school block status:', error);
     res.status(500).json({ message: 'Failed to update school block status.' });
+  }
+};
+
+/**
+ * Adds days to a school's subscription expiry date
+ * Super Admin only endpoint
+ */
+exports.updateSchoolSubscription = async (req, res) => {
+  const { schoolId } = req.params;
+  const { days, action } = req.body; // days: number, action: 'extend' or 'set'
+
+  if (!days || days <= 0) {
+    return res.status(400).json({ 
+      message: 'Valid number of days is required.' 
+    });
+  }
+
+  if (!action || !['extend', 'set'].includes(action)) {
+    return res.status(400).json({ 
+      message: 'Action must be either "extend" or "set".' 
+    });
+  }
+
+  try {
+    const school = await School.findByPk(schoolId);
+
+    if (!school) {
+      return res.status(404).json({ message: 'School not found.' });
+    }
+
+    let newExpiryDate;
+    const currentDate = new Date();
+
+    if (action === 'extend') {
+      // Extend from current expiry date (or current date if no expiry)
+      const baseDate = school.subscriptionExpiry ? new Date(school.subscriptionExpiry) : currentDate;
+      newExpiryDate = new Date(baseDate);
+      newExpiryDate.setDate(newExpiryDate.getDate() + days);
+    } else if (action === 'set') {
+      // Set expiry from current date
+      newExpiryDate = new Date(currentDate);
+      newExpiryDate.setDate(newExpiryDate.getDate() + days);
+    }
+
+    // Update school subscription
+    await school.update({
+      subscriptionExpiry: newExpiryDate,
+      status: 'active' // Reset status to active when subscription is updated
+    });
+
+    console.log(`📅 SUBSCRIPTION UPDATED: School ${school.name} - ${action} ${days} days - New expiry: ${newExpiryDate}`);
+
+    res.status(200).json({
+      message: `School subscription ${action}ed successfully by ${days} days.`,
+      school: {
+        id: school.id,
+        name: school.name,
+        status: school.status,
+        subscriptionExpiry: school.subscriptionExpiry,
+        trialPeriodDays: school.trialPeriodDays
+      }
+    });
+  } catch (error) {
+    console.error('Error updating school subscription:', error);
+    res.status(500).json({ message: 'Failed to update school subscription.' });
   }
 };
