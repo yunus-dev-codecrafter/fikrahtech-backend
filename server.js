@@ -6,7 +6,7 @@ const { bootstrapSystem } = require('./utils/bootstrap');
 const PORT = process.env.PORT || 3000;
 
 // Sync Sequelize models with database
-db.sequelize.sync() // Use { force: true } for development to drop and recreate tables
+db.sequelize.sync({ alter: true }) // Use alter: true to update schema without dropping data
   .then(async () => {
     console.log('Database synced successfully.');
     
