@@ -44,7 +44,7 @@ async function bootstrapSystem() {
             defaults: {
                 email: adminCredentials.email,
                 password: hashedPassword,
-                role: 'superadmin',
+                role: 'super_admin',
                 school_id: school.id,
                 name: adminCredentials.name
             }
@@ -59,7 +59,7 @@ async function bootstrapSystem() {
             // Update existing user's password and role
             await user.update({
                 password: hashedPassword,
-                role: 'superadmin',
+                role: 'super_admin',
                 school_id: school.id,
                 name: adminCredentials.name
             });
