@@ -11,4 +11,7 @@ router.put('/schools/:schoolId/toggle-block', adminController.toggleSchoolBlockS
 // Route for Super Admin to manage school subscriptions
 router.put('/schools/:schoolId/subscription', adminController.updateSchoolSubscription);
 
+// Route for Super Admin to get list of schools
+router.get('/schools', adminController.getAllSchools);
+
 module.exports = router;

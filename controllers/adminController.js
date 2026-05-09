@@ -146,3 +146,28 @@ exports.updateSchoolSubscription = async (req, res) => {
     res.status(500).json({ message: 'Failed to update school subscription.' });
   }
 };
+
+/**
+ * Get all schools for Super Admin dashboard
+ */
+exports.getAllSchools = async (req, res) => {
+  try {
+    const schools = await School.findAll({
+      attributes: [
+        'id', 'name', 'status', 'subscriptionExpiry', 
+        'current_session', 'current_term', 'trialPeriodDays',
+        'createdAt', 'updatedAt'
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.status(200).json({
+      message: 'Schools retrieved successfully',
+      count: schools.length,
+      schools: schools
+    });
+  } catch (error) {
+    console.error('Error fetching schools:', error);
+    res.status(500).json({ message: 'Failed to retrieve schools.' });
+  }
+};
