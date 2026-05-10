@@ -178,3 +178,92 @@ exports.getAllSchools = async (req, res) => {
     res.status(500).json({ message: 'Failed to retrieve schools.' });
   }
 };
+
+/**
+ * Get Super Admin dashboard statistics
+ */
+exports.getAdminStats = async (req, res) => {
+  try {
+    // Get total schools count
+    const totalSchools = await School.count();
+
+    // Get active subscriptions count
+    const activeSubscriptions = await School.count({
+      where: {
+        status: 'active'
+      }
+    });
+
+    // Calculate total revenue (mock calculation - replace with actual payment logic)
+    const totalRevenue = activeSubscriptions * 10000; // Assuming 10,000 per school
+
+    res.status(200).json({
+      message: 'Admin statistics retrieved successfully',
+      stats: {
+        totalSchools,
+        totalRevenue,
+        activeSubscriptions,
+        expiredSubscriptions: totalSchools - activeSubscriptions
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching admin stats:', error);
+    res.status(500).json({ message: 'Failed to retrieve statistics.' });
+  }
+};
+
+/**
+ * Get role-specific settings
+ */
+exports.getSettings = async (req, res) => {
+  try {
+    const { role } = req.user;
+
+    if (role === 'super_admin') {
+      // Super Admin sees System Settings
+      res.status(200).json({
+        message: 'System settings retrieved successfully',
+        settings: {
+          type: 'system',
+          saasName: 'FikrahTech SaaS Platform',
+          maintenanceMode: false,
+          version: '1.0.0',
+          totalUsers: await User.count(),
+          maxSchools: 1000
+        }
+      });
+    } else if (role === 'proprietor') {
+      // Proprietor sees School Settings
+      const schoolId = req.user.schoolId;
+      const school = await School.findByPk(schoolId, {
+        include: [{
+          model: SchoolSettings,
+          as: 'settings'
+        }]
+      });
+
+      if (!school) {
+        return res.status(404).json({ message: 'School not found.' });
+      }
+
+      res.status(200).json({
+        message: 'School settings retrieved successfully',
+        settings: {
+          type: 'school',
+          schoolName: school.name,
+          schoolLogo: school.settings?.schoolLogo || null,
+          currentSession: school.settings?.currentSession || '2023/2024',
+          currentTerm: school.settings?.currentTerm || 'First Term'
+        }
+      });
+    } else {
+      res.status(403).json({
+        message: 'Access denied. Invalid role.',
+        debug: 'INVALID_ROLE'
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching settings:', error);
+    res.status(500).json({ message: 'Failed to retrieve settings.' });
+  }
+};

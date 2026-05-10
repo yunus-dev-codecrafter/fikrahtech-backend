@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
+const { verifyToken, isAdmin } = require('../middleware/verifyToken');
+
+// Apply authentication middleware to all admin routes
+router.use(verifyToken);
 
 // Route for Super Admin to register a new school and its first proprietor
 router.post('/schools/register', adminController.registerSchool);
@@ -13,5 +17,11 @@ router.put('/schools/:schoolId/subscription', adminController.updateSchoolSubscr
 
 // Route for Super Admin to get list of schools
 router.get('/schools', adminController.getAllSchools);
+
+// Route for Super Admin to get dashboard statistics
+router.get('/stats', adminController.getAdminStats);
+
+// Route for role-specific settings
+router.get('/settings', adminController.getSettings);
 
 module.exports = router;

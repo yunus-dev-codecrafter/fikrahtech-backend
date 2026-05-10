@@ -47,7 +47,7 @@ const verifyToken = async (req, res, next) => {
       });
     }
 
-    // Attach user to request
+    // Attach user to request with role
     req.user = {
       id: user.id,
       email: user.email,
