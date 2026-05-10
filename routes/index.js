@@ -3,12 +3,17 @@ const router = express.Router();
 
 const adminRoutes = require('./adminRoutes');
 const authRoutes = require('./authRoutes');
-const { verifyToken, isAdmin } = require('../middleware/verifyToken'); // Add this near the top
+const schoolRoutes = require('./schoolRoutes');
+const { verifyToken, isAdmin } = require('../middleware/verifyToken');
 
 // Apply authentication middleware to admin routes
 router.use('/admin', verifyToken, isAdmin);
 router.use('/admin', adminRoutes);
 
-router.use('/auth', authRoutes); // Add this near router.use('/admin'...)
+// Apply authentication middleware to school routes
+router.use('/school', verifyToken);
+router.use('/school', schoolRoutes);
+
+router.use('/auth', authRoutes);
 
 module.exports = router;

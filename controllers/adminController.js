@@ -32,6 +32,13 @@ exports.registerSchool = async (req, res) => {
       role: 'proprietor'
     }, { transaction });
 
+    // 3. Create default SchoolSettings entry
+    await SchoolSettings.create({
+      school_id: newSchool.id,
+      currentSession: '2023/2024',
+      currentTerm: 'First Term'
+    }, { transaction });
+
     await transaction.commit();
 
     res.status(201).json({
