@@ -24,4 +24,7 @@ router.get('/stats', adminController.getAdminStats);
 // Route for role-specific settings
 router.get('/settings', adminController.getSettings);
 
+// Route for Super Admin to update school settings
+router.put('/schools/:id/settings', adminController.updateSchoolSettings);
+
 module.exports = router;

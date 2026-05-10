@@ -188,22 +188,21 @@ exports.getAdminStats = async (req, res) => {
     const totalSchools = await School.count();
 
     // Get active subscriptions count
-    const activeSubscriptions = await School.count({
+    const totalActive = await School.count({
       where: {
         status: 'active'
       }
     });
 
-    // Calculate total revenue (mock calculation - replace with actual payment logic)
-    const totalRevenue = activeSubscriptions * 10000; // Assuming 10,000 per school
+    // Calculate total revenue (optional/zero for now)
+    const totalRevenue = 0; // Placeholder for future payment integration
 
     res.status(200).json({
       message: 'Admin statistics retrieved successfully',
       stats: {
         totalSchools,
-        totalRevenue,
-        activeSubscriptions,
-        expiredSubscriptions: totalSchools - activeSubscriptions
+        totalActive,
+        totalRevenue
       }
     });
   } catch (error) {
@@ -265,5 +264,60 @@ exports.getSettings = async (req, res) => {
   } catch (error) {
     console.error('Error fetching settings:', error);
     res.status(500).json({ message: 'Failed to retrieve settings.' });
+  }
+};
+
+/**
+ * Update school settings (Super Admin only)
+ */
+exports.updateSchoolSettings = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { currentSession, currentTerm } = req.body;
+
+    if (!currentSession && !currentTerm) {
+      return res.status(400).json({
+        message: 'At least one of currentSession or currentTerm is required'
+      });
+    }
+
+    // Find the school
+    const school = await School.findByPk(id);
+    if (!school) {
+      return res.status(404).json({
+        message: 'School not found'
+      });
+    }
+
+    // Find or create school settings
+    let settings = await SchoolSettings.findOne({
+      where: { school_id: id }
+    });
+
+    if (!settings) {
+      settings = await SchoolSettings.create({
+        school_id: id,
+        currentSession: currentSession || '2023/2024',
+        currentTerm: currentTerm || 'First Term'
+      });
+    } else {
+      // Update existing settings
+      await settings.update({
+        currentSession: currentSession || settings.currentSession,
+        currentTerm: currentTerm || settings.currentTerm
+      });
+    }
+
+    res.status(200).json({
+      message: 'School settings updated successfully',
+      settings: {
+        schoolId: id,
+        currentSession: settings.currentSession,
+        currentTerm: settings.currentTerm
+      }
+    });
+  } catch (error) {
+    console.error('Error updating school settings:', error);
+    res.status(500).json({ message: 'Failed to update school settings.' });
   }
 };

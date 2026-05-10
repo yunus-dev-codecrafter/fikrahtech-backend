@@ -79,7 +79,7 @@ exports.login = async (req, res) => {
         id: user.id,
         email: user.email,
         role: user.role,
-        school_id: user.school_id
+        schoolId: user.school_id // Include schoolId for frontend routing
       },
       debug: 'LOGIN_SUCCESS'
     };

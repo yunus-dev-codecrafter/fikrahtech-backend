@@ -43,7 +43,7 @@ exports.getSchoolProfile = async (req, res) => {
         id: school.id,
         name: school.name,
         status: school.status,
-        subscriptionExpiry: school.subscriptionExpiry,
+        subscriptionExpiry: school.subscriptionExpiry, // Include for Proprietor
         trialPeriodDays: school.trialPeriodDays,
         settings: {
           currentSession: settings.currentSession,
