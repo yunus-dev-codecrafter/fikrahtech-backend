@@ -40,12 +40,11 @@ const Dashboard = () => {
   const [showModal, setShowModal] = useState(false);
   const [registerLoading, setRegisterLoading] = useState(false);
   const [formData, setFormData] = useState({
-    schoolName: '',
-    proprietorEmail: '',
-    proprietorPassword: '',
-    defaultPassword: 'ChangeMe@2026',
-    initialSession: '2026/2027',
-    initialTerm: 'First Term'
+    name: '',
+    email: '',
+    password: '',
+    current_session: '2026/2027',
+    current_term: 'First Term'
   });
 
   // Logout function
@@ -123,6 +122,7 @@ const Dashboard = () => {
 
     try {
       const token = localStorage.getItem('token');
+      console.log('Sending data:', { name: formData.name, email: formData.email, password: formData.password });
       
       const response = await apiCall('https://fikrahtech-backend.onrender.com/api/admin/schools', {
         method: 'POST',
@@ -136,17 +136,16 @@ const Dashboard = () => {
 
       if (response.ok) {
         // Show success notification
-        toast.success(`School "${formData.schoolName}" registered successfully!`);
+        toast.success(`School "${formData.name}" registered successfully!`);
         
         // Close modal and reset form
         setShowModal(false);
         setFormData({
-          schoolName: '',
-          proprietorEmail: '',
-          proprietorPassword: '',
-          defaultPassword: 'ChangeMe@2026',
-          initialSession: '2026/2027',
-          initialTerm: 'First Term'
+          name: '',
+          email: '',
+          password: '',
+          current_session: '2026/2027',
+          current_term: 'First Term'
         });
         
         // Auto-refresh dashboard stats immediately
@@ -262,8 +261,8 @@ const Dashboard = () => {
                 <label>School Name:</label>
                 <input
                   type="text"
-                  name="schoolName"
-                  value={formData.schoolName}
+                  name="name"
+                  value={formData.name}
                   onChange={handleInputChange}
                   required
                   placeholder="Enter school name"
@@ -274,11 +273,11 @@ const Dashboard = () => {
                 <label>Proprietor Email:</label>
                 <input
                   type="email"
-                  name="proprietorEmail"
-                  value={formData.proprietorEmail}
+                  name="email"
+                  value={formData.email}
                   onChange={handleInputChange}
                   required
-                  placeholder="proprietor@school.com"
+                  placeholder="Enter proprietor email"
                 />
               </div>
 
@@ -286,22 +285,11 @@ const Dashboard = () => {
                 <label>Proprietor Password:</label>
                 <input
                   type="password"
-                  name="proprietorPassword"
-                  value={formData.proprietorPassword}
+                  name="password"
+                  value={formData.password}
                   onChange={handleInputChange}
                   required
                   placeholder="Enter password"
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Default Password:</label>
-                <input
-                  type="password"
-                  name="defaultPassword"
-                  value={formData.defaultPassword}
-                  onChange={handleInputChange}
-                  placeholder="Default password for proprietor login"
                 />
               </div>
 
@@ -309,8 +297,8 @@ const Dashboard = () => {
                 <div className="form-group">
                   <label>Initial Session:</label>
                   <select
-                    name="initialSession"
-                    value={formData.initialSession}
+                    name="current_session"
+                    value={formData.current_session}
                     onChange={handleInputChange}
                   >
                     <option value="2025/2026">2025/2026</option>
@@ -322,8 +310,8 @@ const Dashboard = () => {
                 <div className="form-group">
                   <label>Initial Term:</label>
                   <select
-                    name="initialTerm"
-                    value={formData.initialTerm}
+                    name="current_term"
+                    value={formData.current_term}
                     onChange={handleInputChange}
                   >
                     <option value="First Term">First Term</option>

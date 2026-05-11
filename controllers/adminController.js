@@ -7,14 +7,14 @@ const bcrypt = require('bcryptjs'); // For password hashing (though handled by m
  */
 exports.registerSchool = async (req, res) => {
   const { 
-    schoolName, 
-    proprietorEmail, 
-    proprietorPassword, 
-    initialSession = '2026/2027', 
-    initialTerm = 'First Term' 
+    name, 
+    email, 
+    password, 
+    current_session = '2026/2027', 
+    current_term = 'First Term' 
   } = req.body;
 
-  if (!schoolName || !proprietorEmail || !proprietorPassword) {
+  if (!name || !email || !password) {
     return res.status(400).json({ message: 'School name, proprietor email, and password are required.' });
   }
 
@@ -24,7 +24,7 @@ exports.registerSchool = async (req, res) => {
 
     // 1. Create the School entry
     const newSchool = await School.create({
-      name: schoolName,
+      name: name,
       is_blocked: false, // New schools are not blocked by default
       status: 'active',
       trial_period_days: 30
@@ -33,12 +33,12 @@ exports.registerSchool = async (req, res) => {
     // 2. Hash the password manually before creating user
     const bcrypt = require('bcryptjs');
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(proprietorPassword, salt);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
     // 3. Create the first Proprietor User with hashed password
     await User.create({
       school_id: newSchool.id,
-      email: proprietorEmail,
+      email: email,
       password: hashedPassword,
       role: 'proprietor'
     }, { transaction });
@@ -48,7 +48,7 @@ exports.registerSchool = async (req, res) => {
     await sequelize.query(
       'INSERT INTO academic_sessions (school_id, session, term, status, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())',
       {
-        replacements: [newSchool.id, initialSession, initialTerm, 'active'],
+        replacements: [newSchool.id, current_session, current_term, 'active'],
         transaction
       }
     );
@@ -56,8 +56,8 @@ exports.registerSchool = async (req, res) => {
     // 5. Create school_settings entry with default values
     await SchoolSettings.create({
       school_id: newSchool.id,
-      current_session: initialSession,
-      current_term: initialTerm,
+      current_session: current_session,
+      current_term: current_term,
       currency: 'NGN',
       timezone: 'Africa/Lagos',
       grading_system: '5.0',
