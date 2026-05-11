@@ -9,6 +9,9 @@ router.use(verifyToken);
 // Route for Super Admin to register a new school and its first proprietor
 router.post('/schools/register', adminController.registerSchool);
 
+// Route for Super Admin to create a new school (simplified endpoint)
+router.post('/schools', adminController.registerSchool);
+
 // Route for Super Admin to toggle the blocked status of a school
 router.put('/schools/:schoolId/toggle-block', adminController.toggleSchoolBlockStatus);
 

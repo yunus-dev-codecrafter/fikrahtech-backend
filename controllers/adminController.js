@@ -6,7 +6,13 @@ const bcrypt = require('bcryptjs'); // For password hashing (though handled by m
  * This operation should be atomic (transactional).
  */
 exports.registerSchool = async (req, res) => {
-  const { schoolName, proprietorEmail, proprietorPassword } = req.body;
+  const { 
+    schoolName, 
+    proprietorEmail, 
+    proprietorPassword, 
+    initialSession = '2026/2027', 
+    initialTerm = 'First Term' 
+  } = req.body;
 
   if (!schoolName || !proprietorEmail || !proprietorPassword) {
     return res.status(400).json({ message: 'School name, proprietor email, and password are required.' });
@@ -19,8 +25,9 @@ exports.registerSchool = async (req, res) => {
     // 1. Create the School entry
     const newSchool = await School.create({
       name: schoolName,
+      current_session: initialSession,
+      current_term: initialTerm,
       is_blocked: false, // New schools are not blocked by default
-      // sub_expiry and current_session/term can be set later or with default values
     }, { transaction });
 
     // 2. Create the first Proprietor User
@@ -32,11 +39,21 @@ exports.registerSchool = async (req, res) => {
       role: 'proprietor'
     }, { transaction });
 
-    // 3. Create default SchoolSettings entry
+    // 3. Create academic_sessions entry for the school
+    const { sequelize } = require('../models');
+    await sequelize.query(
+      'INSERT INTO academic_sessions (school_id, session, term, status, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())',
+      {
+        replacements: [newSchool.id, initialSession, initialTerm, 'active'],
+        transaction
+      }
+    );
+
+    // 4. Create default SchoolSettings entry
     await SchoolSettings.create({
       school_id: newSchool.id,
-      currentSession: '2023/2024',
-      currentTerm: 'First Term'
+      currentSession: initialSession,
+      currentTerm: initialTerm
     }, { transaction });
 
     await transaction.commit();
