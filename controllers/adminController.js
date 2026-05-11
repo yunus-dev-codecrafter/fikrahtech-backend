@@ -219,9 +219,8 @@ exports.getAllSchools = async (req, res) => {
   try {
     const schools = await School.findAll({
       attributes: [
-        'id', 'name', 'status', 'subscriptionExpiry', 
-        'current_session', 'current_term', 'trialPeriodDays',
-        'createdAt', 'updatedAt'
+        'id', 'name', 'status', 'subscription_expiry', 
+        'trial_period_days', 'created_at', 'updated_at'
       ],
       order: [['createdAt', 'DESC']]
     });

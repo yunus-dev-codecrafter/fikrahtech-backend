@@ -2,6 +2,7 @@
 // Place this in your frontend project (Vercel)
 
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 
 // JWT Token validation helper
@@ -72,6 +73,7 @@ const Dashboard = () => {
         }
 
         const data = await response.json();
+        console.log('Stats received:', data.stats);
         setStats(data.stats);
         setLoading(false);
       } catch (err) {
@@ -236,18 +238,12 @@ const Dashboard = () => {
           >
             Add New School
           </button>
-          <button 
-            onClick={() => window.location.href = '/session-monitor'}
-            className="action-button secondary"
-          >
+          <Link to="/session-monitor" className="action-button secondary">
             Session Monitor
-          </button>
-          <button 
-            onClick={() => window.location.href = '/revenue-reports'}
-            className="action-button secondary"
-          >
+          </Link>
+          <Link to="/revenue-reports" className="action-button secondary">
             Revenue Reports
-          </button>
+          </Link>
         </div>
       </div>
 

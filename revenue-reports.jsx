@@ -15,7 +15,7 @@ const RevenueReports = () => {
   useEffect(() => {
     const fetchPayments = async () => {
       try {
-        const token = localStorage.getItem('authToken');
+        const token = localStorage.getItem('token');
         
         const response = await fetch('https://fikrahtech-backend.onrender.com/api/admin/payments', {
           method: 'GET',

@@ -13,7 +13,7 @@ const SessionMonitor = () => {
   useEffect(() => {
     const fetchSchools = async () => {
       try {
-        const token = localStorage.getItem('authToken');
+        const token = localStorage.getItem('token');
         
         const response = await fetch('https://fikrahtech-backend.onrender.com/api/admin/schools', {
           method: 'GET',
@@ -86,7 +86,7 @@ const SessionMonitor = () => {
   // Update school session/term
   const updateSchoolSession = async (schoolId, session, term) => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('token');
       
       const response = await fetch(
         `https://fikrahtech-backend.onrender.com/api/admin/schools/${schoolId}/session`,
