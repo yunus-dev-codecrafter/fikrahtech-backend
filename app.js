@@ -4,12 +4,12 @@ const cors = require('cors');
 const app = express();
 const allRoutes = require('./routes'); // Import the consolidated routes
 
+console.log('CORS initialized for Vercel origin');
+
 app.use(cors({
   origin: [
-    'https://your-vercel-app.vercel.app', // Replace with your actual Vercel domain
-    'http://localhost:3000',
-    'http://localhost:5173', // Common Vite dev port
-    'http://localhost:3001'  // Alternative dev port
+    'https://fikrahtech.vercel.app', // Your actual Vercel domain
+    'http://localhost:5173' // Common Vite dev port
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -17,6 +17,9 @@ app.use(cors({
 }));
 
 app.use(express.json()); // For parsing application/json request bodies
+
+// Handle OPTIONS preflight requests
+app.options('*', cors());
 
 // Mount all routes under /api
 app.use('/api', allRoutes);
