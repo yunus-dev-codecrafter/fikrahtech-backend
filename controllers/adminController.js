@@ -1,4 +1,4 @@
-const { User, School } = require('../models');
+const { User, School, Payment, Student } = require('../models');
 const bcrypt = require('bcryptjs'); // For password hashing (though handled by model hook, good to have for clarity)
 
 /**
@@ -222,12 +222,18 @@ exports.getAdminStats = async (req, res) => {
     });
     console.log('🔍 ADMIN STATS: Schools count:', totalSchools);
 
-    // Get total revenue from payments (return 0 if null or error)
-    console.log('🔍 ADMIN STATS: Querying payments table...');
-    const totalRevenue = await Payment.sum('amount').catch((err) => {
-      console.error('🔍 ADMIN STATS ERROR: Failed to query payments table:', err);
-      return 0;
-    }) || 0;
+    // Get total revenue from payments (return 0 if Payment model doesn't exist)
+    console.log('🔍 ADMIN STATS: Checking Payment model availability...');
+    let totalRevenue = 0;
+    if (Payment && typeof Payment.sum === 'function') {
+      console.log('🔍 ADMIN STATS: Querying payments table...');
+      totalRevenue = await Payment.sum('amount').catch((err) => {
+        console.error('🔍 ADMIN STATS ERROR: Failed to query payments table:', err);
+        return 0;
+      }) || 0;
+    } else {
+      console.log('🔍 ADMIN STATS: Payment model not available, revenue set to 0');
+    }
     console.log('🔍 ADMIN STATS: Total revenue:', totalRevenue);
 
     // Get total students count (handle empty table)

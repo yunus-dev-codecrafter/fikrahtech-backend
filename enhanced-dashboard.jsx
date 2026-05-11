@@ -60,7 +60,6 @@ const Dashboard = () => {
     const fetchStats = async () => {
       try {
         const token = localStorage.getItem('token');
-        console.log('Token being sent:', token);
         
         const response = await apiCall('https://fikrahtech-backend.onrender.com/api/admin/stats', {
           method: 'GET',
@@ -124,7 +123,6 @@ const Dashboard = () => {
 
     try {
       const token = localStorage.getItem('token');
-      console.log('Token being sent for school registration:', token);
       
       const response = await apiCall('https://fikrahtech-backend.onrender.com/api/admin/schools', {
         method: 'POST',
