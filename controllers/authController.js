@@ -9,7 +9,7 @@ exports.login = async (req, res) => {
   try {
     // Use promise pattern to query users table for matching email
     const [users] = await sequelize.query(
-      'SELECT id, name, email, password, role FROM users WHERE email = ?',
+      'SELECT id, email, password, role FROM users WHERE email = ?',
       {
         replacements: [email],
         type: sequelize.QueryTypes.SELECT
@@ -44,13 +44,12 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Success: Return user's ID, Name, and Role
+    // Success: Return user's ID and Role
     res.status(200).json({
       success: true,
       message: 'Login successful',
       user: {
         id: user.id,
-        name: user.name,
         role: user.role
       }
     });

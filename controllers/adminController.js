@@ -187,21 +187,20 @@ exports.getAdminStats = async (req, res) => {
     // Get total schools count
     const totalSchools = await School.count();
 
-    // Get active subscriptions count
-    const totalActive = await School.count({
-      where: {
-        status: 'active'
+    // Sum amount column from payments table
+    const { sequelize } = require('../models');
+    const [revenueResult] = await sequelize.query(
+      'SELECT COALESCE(SUM(amount), 0) as totalRevenue FROM payments',
+      {
+        type: sequelize.QueryTypes.SELECT
       }
-    });
-
-    // Calculate total revenue (optional/zero for now)
-    const totalRevenue = 0; // Placeholder for future payment integration
+    );
+    const totalRevenue = revenueResult.totalRevenue;
 
     res.status(200).json({
       message: 'Admin statistics retrieved successfully',
       stats: {
         totalSchools,
-        totalActive,
         totalRevenue
       }
     });
