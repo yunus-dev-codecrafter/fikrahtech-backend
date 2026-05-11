@@ -15,25 +15,24 @@ module.exports = (sequelize, DataTypes) => {
       },
       comment: 'Reference to the school this setting belongs to'
     },
-    currentSession: {
+    current_session: {
       type: DataTypes.STRING,
       allowNull: false,
       defaultValue: '2024/2025',
       comment: 'Current academic session (e.g., "2024/2025")'
     },
-    currentTerm: {
+    current_term: {
       type: DataTypes.STRING,
       allowNull: false,
       defaultValue: 'First Term',
       comment: 'Current academic term (e.g., "First Term", "Second Term", "Third Term")'
     },
-    // Additional school-specific settings
-    maxStudents: {
+    max_students: {
       type: DataTypes.INTEGER,
       allowNull: true,
       comment: 'Maximum number of students allowed'
     },
-    gradingSystem: {
+    grading_system: {
       type: DataTypes.STRING,
       allowNull: false,
       defaultValue: '5.0',

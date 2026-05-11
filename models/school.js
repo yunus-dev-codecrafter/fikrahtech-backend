@@ -10,41 +10,27 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false
     },
-    // Legacy field - will be deprecated in favor of status
     is_blocked: {
       type: DataTypes.BOOLEAN,
       defaultValue: false
     },
-    // New subscription management fields
-    subscriptionExpiry: {
-      type: DataTypes.DATE,
-      allowNull: true,
-      comment: 'Date when school subscription expires'
-    },
-    status: {
-      type: DataTypes.ENUM('active', 'blocked', 'expired'),
-      defaultValue: 'active',
-      allowNull: false,
-      comment: 'School subscription status'
-    },
-    trialPeriodDays: {
-      type: DataTypes.INTEGER,
-      defaultValue: 30,
-      allowNull: false,
-      comment: 'Number of trial days for new schools'
-    },
-    // Legacy fields - will be moved to SchoolSettings
     sub_expiry: {
       type: DataTypes.DATE,
       allowNull: true
     },
-    current_session: {
-      type: DataTypes.STRING,
+    subscription_expiry: {
+      type: DataTypes.DATE,
       allowNull: true
     },
-    current_term: {
-      type: DataTypes.STRING,
-      allowNull: true
+    status: {
+      type: DataTypes.ENUM('active', 'blocked', 'expired'),
+      defaultValue: 'active',
+      allowNull: false
+    },
+    trial_period_days: {
+      type: DataTypes.INTEGER,
+      defaultValue: 30,
+      allowNull: false
     }
   }, {
     tableName: 'schools',
@@ -52,17 +38,17 @@ module.exports = (sequelize, DataTypes) => {
     hooks: {
       beforeCreate: (school) => {
         // Set subscription expiry if not provided
-        if (!school.subscriptionExpiry && school.trialPeriodDays) {
+        if (!school.subscription_expiry && school.trial_period_days) {
           const expiryDate = new Date();
-          expiryDate.setDate(expiryDate.getDate() + school.trialPeriodDays);
-          school.subscriptionExpiry = expiryDate;
+          expiryDate.setDate(expiryDate.getDate() + school.trial_period_days);
+          school.subscription_expiry = expiryDate;
         }
       },
       beforeUpdate: (school) => {
         // Auto-update status based on subscription expiry
-        if (school.changed('subscriptionExpiry') || school.changed('status')) {
+        if (school.changed('subscription_expiry') || school.changed('status')) {
           const now = new Date();
-          if (school.subscriptionExpiry && now > school.subscriptionExpiry && school.status === 'active') {
+          if (school.subscription_expiry && now > school.subscription_expiry && school.status === 'active') {
             school.status = 'expired';
           }
         }

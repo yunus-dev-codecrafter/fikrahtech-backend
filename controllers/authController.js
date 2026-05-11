@@ -45,13 +45,14 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Success: Return user's ID and Role
+    // Return success response with user data including school_id
     res.status(200).json({
-      success: true,
       message: 'Login successful',
       user: {
         id: user.id,
-        role: user.role
+        email: user.email,
+        role: user.role,
+        school_id: user.school_id
       }
     });
     

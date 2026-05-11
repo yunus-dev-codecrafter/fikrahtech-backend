@@ -3,6 +3,13 @@ const app = require('./app');
 const db = require('./models'); // Import the Sequelize instance
 const { bootstrapSystem } = require('./utils/bootstrap');
 
+// Check JWT_SECRET status
+if (process.env.JWT_SECRET) {
+  console.log('✅ KEY FOUND: JWT_SECRET is configured');
+} else {
+  console.log('❌ KEY MISSING: JWT_SECRET is not configured');
+}
+
 const PORT = process.env.PORT || 3000;
 
 // Sync Sequelize models with database
