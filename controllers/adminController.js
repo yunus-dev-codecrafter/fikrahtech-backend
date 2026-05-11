@@ -25,13 +25,19 @@ exports.registerSchool = async (req, res) => {
 
     // 1. Create the School entry
     console.log('🔍 REGISTRATION: Creating school with name:', name);
-    const newSchool = await School.create({
-      name: name,
-      is_blocked: false, // New schools are not blocked by default
-      status: 'active',
-      trial_period_days: 30
-    }, { transaction });
-    console.log('🔍 REGISTRATION: School created with ID:', newSchool.id);
+    let newSchool;
+    try {
+      newSchool = await School.create({
+        name: name,
+        is_blocked: false, // New schools are not blocked by default
+        status: 'active',
+        trial_period_days: 30
+      }, { transaction });
+      console.log('🔍 REGISTRATION: School created with ID:', newSchool.id);
+    } catch (error) {
+      console.error('🔍 REGISTRATION ERROR - Step 1 (School creation):', error.message);
+      throw error;
+    }
 
     // 2. Hash the password manually before creating user
     const bcrypt = require('bcryptjs');
@@ -40,38 +46,53 @@ exports.registerSchool = async (req, res) => {
 
     // 3. Create the first Proprietor User with hashed password
     console.log('🔍 REGISTRATION: Creating user with email:', email, 'for school:', newSchool.id);
-    await User.create({
-      school_id: newSchool.id,
-      email: email,
-      password: hashedPassword,
-      role: 'proprietor'
-    }, { transaction });
-    console.log('🔍 REGISTRATION: User created successfully');
+    try {
+      await User.create({
+        school_id: newSchool.id,
+        email: email,
+        password: hashedPassword,
+        role: 'proprietor'
+      }, { transaction });
+      console.log('🔍 REGISTRATION: User created successfully');
+    } catch (error) {
+      console.error('🔍 REGISTRATION ERROR - Step 3 (User creation):', error.message);
+      throw error;
+    }
 
     // 4. Create academic_sessions entry for the school
     console.log('🔍 REGISTRATION: Creating academic session...');
-    const { sequelize } = require('../models');
-    await sequelize.query(
-      'INSERT INTO academic_sessions (school_id, session, term, status, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())',
-      {
-        replacements: [newSchool.id, current_session, current_term, 'active'],
-        transaction
-      }
-    );
-    console.log('🔍 REGISTRATION: Academic session created');
+    try {
+      const { sequelize } = require('../models');
+      await sequelize.query(
+        'INSERT INTO academic_sessions (school_id, session, term, status, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())',
+        {
+          replacements: [newSchool.id, current_session, current_term, 'active'],
+          transaction
+        }
+      );
+      console.log('🔍 REGISTRATION: Academic session created');
+    } catch (error) {
+      console.error('🔍 REGISTRATION ERROR - Step 4 (Academic session creation):', error.message);
+      throw error;
+    }
 
     // 5. Create school_settings entry with default values
     console.log('🔍 REGISTRATION: Creating school settings...');
-    await SchoolSettings.create({
-      school_id: newSchool.id,
-      current_session: current_session,
-      current_term: current_term,
-      currency: 'NGN',
-      timezone: 'Africa/Lagos',
-      grading_system: '5.0',
-      max_students: null
-    }, { transaction });
-    console.log('🔍 REGISTRATION: School settings created');
+    try {
+      await SchoolSettings.create({
+        school_id: newSchool.id,
+        current_session: current_session,
+        current_term: current_term,
+        currency: 'NGN',
+        timezone: 'Africa/Lagos',
+        grading_system: '5.0',
+        max_students: null
+      }, { transaction });
+      console.log('🔍 REGISTRATION: School settings created');
+    } catch (error) {
+      console.error('🔍 REGISTRATION ERROR - Step 5 (School settings creation):', error.message);
+      throw error;
+    }
 
     console.log('🔍 REGISTRATION: Committing transaction...');
     await transaction.commit();
