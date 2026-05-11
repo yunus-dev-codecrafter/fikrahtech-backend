@@ -7,28 +7,20 @@ exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Case-insensitive email comparison
-    console.log('🔍 DEBUG: Executing case-insensitive query for email:', email.toLowerCase());
-    const [users] = await sequelize.query(
-      'SELECT * FROM users WHERE LOWER(email) = LOWER(?)',
-      {
-        replacements: [email],
-        type: sequelize.QueryTypes.SELECT
-      }
-    );
-    console.log('🔍 DEBUG: Raw SQL query result:', users);
+    // Raw query fallback to check user existence
+    console.log('🔍 DEBUG: Executing raw query for email:', email);
+    const [rows] = await sequelize.query('SELECT * FROM users WHERE email = ?', { 
+      replacements: [email] 
+    });
+    console.log('🔍 DEBUG: Raw query result:', rows);
 
-    // Database visibility test - print user data to Render console
-    console.log('🔍 DATABASE VISIBILITY TEST - User found:', users[0]);
-
-    // Check if user exists
-    if (users.length === 0) {
+    if (rows.length === 0) {
       return res.status(401).json({ 
-        message: 'Invalid email or password' 
+        message: 'User not found in database' 
       });
     }
 
-    const user = users[0];
+    const user = rows[0];
 
     // Immediate user existence check to prevent 500 crash
     if (!user) {
