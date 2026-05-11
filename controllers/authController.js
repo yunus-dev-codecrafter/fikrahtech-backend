@@ -1,6 +1,8 @@
 const { sequelize } = require('../models');
 const bcrypt = require('bcryptjs');
 
+console.log('✅ Auth logic synced with bcryptjs');
+
 exports.login = async (req, res) => {
   const { email, password } = req.body;
 
