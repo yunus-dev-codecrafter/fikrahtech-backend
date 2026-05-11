@@ -199,7 +199,7 @@ const Dashboard = () => {
           </div>
           <div className="stat-content">
             <h3>Total Schools</h3>
-            <p className="stat-number">{stats.totalSchools}</p>
+            <p className="stat-number">{stats?.totalSchools || 0}</p>
           </div>
         </div>
 
@@ -211,7 +211,7 @@ const Dashboard = () => {
           <div className="stat-content">
             <h3>Total Revenue</h3>
             <p className="stat-number">
-              NGN {stats.totalRevenue.toLocaleString()}
+              NGN {stats?.totalRevenue?.toLocaleString() || '0'}
             </p>
           </div>
         </div>
@@ -223,7 +223,7 @@ const Dashboard = () => {
           </div>
           <div className="stat-content">
             <h3>Total Students</h3>
-            <p className="stat-number">{stats.totalStudents}</p>
+            <p className="stat-number">{stats?.totalStudents || 0}</p>
           </div>
         </div>
       </div>

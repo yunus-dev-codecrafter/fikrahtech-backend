@@ -106,10 +106,7 @@ const Dashboard = () => {
         <button onClick={() => window.location.href = '/admin/schools'}>
           Manage Schools
         </button>
-        <button onClick={() => window.location.href = '/admin/settings'}>
-          System Settings
-        </button>
-      </div>
+              </div>
     </div>
   );
 };

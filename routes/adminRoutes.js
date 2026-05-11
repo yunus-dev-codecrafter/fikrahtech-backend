@@ -24,6 +24,9 @@ router.get('/schools', adminController.getAllSchools);
 // Route for Super Admin to get dashboard statistics
 router.get('/stats', adminController.getAdminStats);
 
+// Route for Super Admin to get revenue data
+router.get('/revenue', adminController.getAdminStats);
+
 // Route for role-specific settings
 router.get('/settings', adminController.getSettings);
 
