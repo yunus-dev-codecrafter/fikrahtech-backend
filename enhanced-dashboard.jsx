@@ -18,6 +18,7 @@ const Dashboard = () => {
     schoolName: '',
     proprietorEmail: '',
     proprietorPassword: '',
+    defaultPassword: 'ChangeMe@2026',
     initialSession: '2026/2027',
     initialTerm: 'First Term'
   });
@@ -113,12 +114,14 @@ const Dashboard = () => {
           schoolName: '',
           proprietorEmail: '',
           proprietorPassword: '',
+          defaultPassword: 'ChangeMe@2026',
           initialSession: '2026/2027',
           initialTerm: 'First Term'
         });
         
-        // Auto-refresh dashboard stats
+        // Auto-refresh dashboard stats immediately
         await refreshStats();
+        toast.success('Dashboard stats updated!');
       } else {
         toast.error(data.message || 'Failed to register school');
       }
@@ -253,6 +256,17 @@ const Dashboard = () => {
                   onChange={handleInputChange}
                   required
                   placeholder="Enter password"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Default Password:</label>
+                <input
+                  type="password"
+                  name="defaultPassword"
+                  value={formData.defaultPassword}
+                  onChange={handleInputChange}
+                  placeholder="Default password for proprietor login"
                 />
               </div>
 

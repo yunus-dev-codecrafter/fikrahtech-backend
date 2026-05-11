@@ -30,12 +30,16 @@ exports.registerSchool = async (req, res) => {
       is_blocked: false, // New schools are not blocked by default
     }, { transaction });
 
-    // 2. Create the first Proprietor User
-    // Password hashing is handled by the User model's beforeCreate hook
+    // 2. Hash the password manually before creating user
+    const bcrypt = require('bcryptjs');
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(proprietorPassword, salt);
+
+    // 3. Create the first Proprietor User with hashed password
     await User.create({
       school_id: newSchool.id,
       email: proprietorEmail,
-      password: proprietorPassword,
+      password: hashedPassword,
       role: 'proprietor'
     }, { transaction });
 
