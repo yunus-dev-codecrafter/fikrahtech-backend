@@ -20,15 +20,18 @@ exports.registerSchool = async (req, res) => {
 
   let transaction;
   try {
+    console.log('🔍 REGISTRATION: Starting transaction...');
     transaction = await sequelize.transaction();
 
     // 1. Create the School entry
+    console.log('🔍 REGISTRATION: Creating school with name:', name);
     const newSchool = await School.create({
       name: name,
       is_blocked: false, // New schools are not blocked by default
       status: 'active',
       trial_period_days: 30
     }, { transaction });
+    console.log('🔍 REGISTRATION: School created with ID:', newSchool.id);
 
     // 2. Hash the password manually before creating user
     const bcrypt = require('bcryptjs');
@@ -36,14 +39,17 @@ exports.registerSchool = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // 3. Create the first Proprietor User with hashed password
+    console.log('🔍 REGISTRATION: Creating user with email:', email, 'for school:', newSchool.id);
     await User.create({
       school_id: newSchool.id,
       email: email,
       password: hashedPassword,
       role: 'proprietor'
     }, { transaction });
+    console.log('🔍 REGISTRATION: User created successfully');
 
     // 4. Create academic_sessions entry for the school
+    console.log('🔍 REGISTRATION: Creating academic session...');
     const { sequelize } = require('../models');
     await sequelize.query(
       'INSERT INTO academic_sessions (school_id, session, term, status, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())',
@@ -52,8 +58,10 @@ exports.registerSchool = async (req, res) => {
         transaction
       }
     );
+    console.log('🔍 REGISTRATION: Academic session created');
 
     // 5. Create school_settings entry with default values
+    console.log('🔍 REGISTRATION: Creating school settings...');
     await SchoolSettings.create({
       school_id: newSchool.id,
       current_session: current_session,
@@ -63,8 +71,11 @@ exports.registerSchool = async (req, res) => {
       grading_system: '5.0',
       max_students: null
     }, { transaction });
+    console.log('🔍 REGISTRATION: School settings created');
 
+    console.log('🔍 REGISTRATION: Committing transaction...');
     await transaction.commit();
+    console.log('🔍 REGISTRATION: Transaction committed successfully');
 
     res.status(201).json({
       message: 'School and proprietor registered successfully.',
@@ -76,11 +87,14 @@ exports.registerSchool = async (req, res) => {
     });
   } catch (error) {
     if (transaction) await transaction.rollback();
-    console.error('Error registering school and proprietor:', error);
+    console.error('REGISTRATION_FLOW_ERROR:', error);
     if (error.name === 'SequelizeUniqueConstraintError') {
       return res.status(409).json({ message: 'School name or proprietor email already exists.' });
     }
-    res.status(500).json({ message: 'Failed to register school and proprietor.' });
+    res.status(500).json({ 
+      message: 'Failed to register school and proprietor.', 
+      error: error.message 
+    });
   }
 };
 
