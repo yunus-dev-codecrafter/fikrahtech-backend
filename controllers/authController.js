@@ -1,4 +1,5 @@
 const { sequelize } = require('../models');
+const bcrypt = require('bcryptjs');
 
 exports.login = async (req, res) => {
   const { email, password } = req.body;
@@ -13,26 +14,31 @@ exports.login = async (req, res) => {
       }
     );
 
+    // Database visibility test - print user data to Render console
+    console.log('🔍 DATABASE VISIBILITY TEST - User found:', users[0]);
+
     // Check if user exists
     if (users.length === 0) {
       return res.status(401).json({ 
-        message: 'Invalid Credentials' 
+        message: 'Unauthorized' 
       });
     }
 
     const user = users[0];
 
-    // Plain text password comparison
-    if (password !== user.password) {
+    // Use bcrypt.compare to verify password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    
+    if (!isPasswordValid) {
       return res.status(401).json({ 
-        message: 'Invalid Credentials' 
+        message: 'Unauthorized' 
       });
     }
 
-    // Check if role is 'super_admin'
+    // Strict super_admin role check
     if (user.role !== 'super_admin') {
       return res.status(401).json({ 
-        message: 'Invalid Credentials' 
+        message: 'Unauthorized' 
       });
     }
 
