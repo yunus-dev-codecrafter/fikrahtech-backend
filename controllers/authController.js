@@ -58,7 +58,9 @@ exports.login = async (req, res) => {
     
   } catch (error) {
     console.error('DETAILED LOGIN ERROR:', error);
+    console.error('LOGIN ERROR STACK:', error.stack);
     res.status(500).json({ 
+      message: 'Login failed due to server error',
       error: error.message, 
       stack: error.stack 
     });

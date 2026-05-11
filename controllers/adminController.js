@@ -209,17 +209,36 @@ exports.getAllSchools = async (req, res) => {
  */
 exports.getAdminStats = async (req, res) => {
   try {
+    console.log('🔍 ADMIN STATS: Starting stats collection...');
+    
     const { School, Payment, Student } = require('../models');
+    console.log('🔍 ADMIN STATS: Models loaded successfully');
 
     // Get total schools count (handle empty table)
-    const totalSchools = await School.count().catch(() => 0);
+    console.log('🔍 ADMIN STATS: Querying schools table...');
+    const totalSchools = await School.count().catch((err) => {
+      console.error('🔍 ADMIN STATS ERROR: Failed to query schools table:', err);
+      return 0;
+    });
+    console.log('🔍 ADMIN STATS: Schools count:', totalSchools);
 
     // Get total revenue from payments (return 0 if null or error)
-    const totalRevenue = await Payment.sum('amount').catch(() => 0) || 0;
+    console.log('🔍 ADMIN STATS: Querying payments table...');
+    const totalRevenue = await Payment.sum('amount').catch((err) => {
+      console.error('🔍 ADMIN STATS ERROR: Failed to query payments table:', err);
+      return 0;
+    }) || 0;
+    console.log('🔍 ADMIN STATS: Total revenue:', totalRevenue);
 
     // Get total students count (handle empty table)
-    const totalStudents = await Student.count().catch(() => 0);
+    console.log('🔍 ADMIN STATS: Querying students table...');
+    const totalStudents = await Student.count().catch((err) => {
+      console.error('🔍 ADMIN STATS ERROR: Failed to query students table:', err);
+      return 0;
+    });
+    console.log('🔍 ADMIN STATS: Students count:', totalStudents);
 
+    console.log('🔍 ADMIN STATS: Stats collection completed successfully');
     res.status(200).json({
       message: 'Admin statistics retrieved successfully',
       stats: {
@@ -229,14 +248,12 @@ exports.getAdminStats = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching admin stats:', error);
-    res.status(200).json({
-      message: 'Admin statistics retrieved with fallback values',
-      stats: {
-        totalSchools: 0,
-        totalRevenue: 0,
-        totalStudents: 0
-      }
+    console.error('🔍 ADMIN STATS CRITICAL ERROR:', error);
+    console.error('🔍 ADMIN STATS ERROR STACK:', error.stack);
+    res.status(500).json({
+      message: 'Failed to retrieve statistics',
+      error: error.message,
+      stack: error.stack
     });
   }
 };

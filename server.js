@@ -31,6 +31,15 @@ db.sequelize.sync({ alter: true }) // Use alter: true to update schema without d
       console.log(' Server starting with bootstrap warnings...');
     }
     
+    // Global error handler middleware
+    app.use((err, req, res, next) => {
+      console.error('CRITICAL SERVER ERROR:', err);
+      res.status(500).json({ 
+        error: err.message, 
+        stack: err.stack 
+      });
+    });
+
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });

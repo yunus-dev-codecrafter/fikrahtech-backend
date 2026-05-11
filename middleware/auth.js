@@ -1,27 +1,36 @@
 const jwt = require('jsonwebtoken');
 
-// JWT verification middleware
+// Simple JWT verification middleware
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+  
+  if (!authHeader) {
+    console.error('MISSING TOKEN HEADER');
+    return res.status(401).json({ 
+      message: 'Missing Token Header' 
+    });
+  }
+
+  const token = authHeader.split(' ')[1]; // Bearer TOKEN
 
   if (!token) {
+    console.error('MISSING TOKEN IN HEADER');
     return res.status(401).json({ 
-      message: 'Access token required' 
+      message: 'Missing Token Header' 
     });
   }
 
   const jwtSecret = process.env.JWT_SECRET;
   if (!jwtSecret) {
-    console.error('JWT_SECRET environment variable is not set');
+    console.error('MISSING JWT_SECRET');
     return res.status(500).json({ 
-      message: 'Server configuration error' 
+      message: 'Server configuration error - JWT_SECRET missing' 
     });
   }
 
   jwt.verify(token, jwtSecret, (err, decoded) => {
     if (err) {
-      console.error('JWT verification failed:', err);
+      console.error('JWT VERIFICATION FAILED:', err);
       return res.status(401).json({ 
         message: 'Invalid or expired token' 
       });
@@ -32,24 +41,6 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// Role verification middleware
-const verifyRole = (roles) => (req, res, next) => {
-  if (!req.user) {
-    return res.status(401).json({ 
-      message: 'Authentication required' 
-    });
-  }
-
-  if (!roles.includes(req.user.role)) {
-    return res.status(403).json({ 
-      message: 'Insufficient permissions' 
-    });
-  }
-
-  next();
-};
-
 module.exports = {
-  authenticateToken,
-  verifyRole
+  authenticateToken
 };
