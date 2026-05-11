@@ -79,5 +79,7 @@ module.exports = {
       timestamps: true,
       underscored: true
     }
-  }
+  },
+  // Use DATABASE_URL as the primary connection method
+  use_env_variable: 'DATABASE_URL'
 };
