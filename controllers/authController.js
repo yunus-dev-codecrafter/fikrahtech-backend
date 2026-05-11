@@ -7,10 +7,10 @@ exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Manual SQL Test: Use raw query to find user by email
-    console.log('🔍 DEBUG: Executing raw SQL query for email:', email);
+    // Case-insensitive email comparison
+    console.log('🔍 DEBUG: Executing case-insensitive query for email:', email.toLowerCase());
     const [users] = await sequelize.query(
-      'SELECT * FROM users WHERE email = ?',
+      'SELECT * FROM users WHERE LOWER(email) = LOWER(?)',
       {
         replacements: [email],
         type: sequelize.QueryTypes.SELECT
@@ -24,11 +24,18 @@ exports.login = async (req, res) => {
     // Check if user exists
     if (users.length === 0) {
       return res.status(401).json({ 
-        message: 'Unauthorized' 
+        message: 'Invalid email or password' 
       });
     }
 
     const user = users[0];
+
+    // Immediate user existence check to prevent 500 crash
+    if (!user) {
+      return res.status(401).json({ 
+        message: 'Invalid email or password' 
+      });
+    }
 
     // Use bcrypt.compare to verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);

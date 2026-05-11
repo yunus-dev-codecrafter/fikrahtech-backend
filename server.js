@@ -10,6 +10,11 @@ db.sequelize.sync({ alter: true }) // Use alter: true to update schema without d
   .then(async () => {
     console.log('Database synced successfully.');
     
+    // Log total users count on startup for database verification
+    const { User } = db;
+    const userCount = await User.count();
+    console.log('TOTAL USERS IN DB:', userCount);
+    
     // Run system bootstrap after database sync
     const bootstrapResult = await bootstrapSystem();
     
