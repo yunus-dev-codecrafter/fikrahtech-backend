@@ -1,4 +1,4 @@
-const { User, School, Payment, Student } = require('../models');
+const { User, School, Payment, Student, sequelize } = require('../models');
 const bcrypt = require('bcryptjs'); // For password hashing (though handled by model hook, good to have for clarity)
 
 /**
