@@ -4,6 +4,31 @@
 import React, { useState, useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 
+// JWT Token validation helper
+const isValidJWT = (token) => {
+  if (!token) return false;
+  const parts = token.split('.');
+  return parts.length === 3;
+};
+
+// API call helper with token validation
+const apiCall = async (url, options = {}) => {
+  const token = localStorage.getItem('token');
+  
+  // Only add Authorization header if token is valid
+  if (token && isValidJWT(token)) {
+    options.headers = {
+      ...options.headers,
+      'Authorization': `Bearer ${token}`
+    };
+  } else if (token) {
+    console.warn('Invalid JWT token format, removing from storage');
+    localStorage.removeItem('token');
+  }
+
+  return fetch(url, options);
+};
+
 const Dashboard = () => {
   const [stats, setStats] = useState({
     totalSchools: 0,
@@ -23,18 +48,24 @@ const Dashboard = () => {
     initialTerm: 'First Term'
   });
 
+  // Logout function
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
+  };
+
   // Fetch stats from backend on page load
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const token = localStorage.getItem('authToken');
+        const token = localStorage.getItem('token');
         console.log('Token being sent:', token);
         
-        const response = await fetch('https://fikrahtech-backend.onrender.com/api/admin/stats', {
+        const response = await apiCall('https://fikrahtech-backend.onrender.com/api/admin/stats', {
           method: 'GET',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Content-Type': 'application/json'
           }
         });
 
@@ -92,14 +123,13 @@ const Dashboard = () => {
     setRegisterLoading(true);
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('token');
       console.log('Token being sent for school registration:', token);
       
-      const response = await fetch('https://fikrahtech-backend.onrender.com/api/admin/schools', {
+      const response = await apiCall('https://fikrahtech-backend.onrender.com/api/admin/schools', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(formData)
       });
@@ -155,7 +185,12 @@ const Dashboard = () => {
     <div className="dashboard-container">
       <Toaster position="top-right" />
       
-      <h2>Super Admin Dashboard</h2>
+      <div className="dashboard-header">
+        <h2>Super Admin Dashboard</h2>
+        <button onClick={handleLogout} className="logout-button">
+          Logout
+        </button>
+      </div>
       
       <div className="stats-grid">
         {/* Total Schools Card */}
@@ -333,6 +368,27 @@ const Dashboard = () => {
           padding: 20px;
           max-width: 1200px;
           margin: 0 auto;
+        }
+
+        .dashboard-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 30px;
+        }
+
+        .logout-button {
+          padding: 8px 16px;
+          background: #dc3545;
+          color: white;
+          border: none;
+          border-radius: 5px;
+          cursor: pointer;
+          font-size: 14px;
+        }
+
+        .logout-button:hover {
+          background: #c82333;
         }
 
         .dashboard-loading, .dashboard-error {

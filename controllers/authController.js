@@ -1,5 +1,6 @@
 const { sequelize } = require('../models');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 console.log('✅ Auth logic synced with bcryptjs');
 
@@ -45,9 +46,22 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Return success response with user data including school_id
+    // Generate JWT token
+    const token = jwt.sign(
+      { 
+        id: user.id, 
+        email: user.email, 
+        role: user.role,
+        school_id: user.school_id 
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    // Return success response with user data and token
     res.status(200).json({
       message: 'Login successful',
+      token: token,
       user: {
         id: user.id,
         email: user.email,

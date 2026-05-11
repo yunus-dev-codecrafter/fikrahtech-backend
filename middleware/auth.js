@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 // Simple JWT verification middleware
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
+  console.log('Incoming Header:', authHeader);
   
   if (!authHeader) {
     console.error('MISSING TOKEN HEADER');
@@ -17,6 +18,14 @@ const authenticateToken = (req, res, next) => {
     console.error('MISSING TOKEN IN HEADER');
     return res.status(401).json({ 
       message: 'Missing Token Header' 
+    });
+  }
+
+  // Check for null/undefined tokens (as strings)
+  if (token === 'null' || token === 'undefined' || token === 'null' || token === 'undefined') {
+    console.error('INVALID TOKEN FORMAT - null/undefined string');
+    return res.status(401).json({ 
+      message: 'Invalid token format' 
     });
   }
 
