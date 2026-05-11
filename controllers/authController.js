@@ -7,14 +7,16 @@ exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Use promise pattern to query users table for matching email
+    // Manual SQL Test: Use raw query to find user by email
+    console.log('🔍 DEBUG: Executing raw SQL query for email:', email);
     const [users] = await sequelize.query(
-      'SELECT id, email, password, role FROM users WHERE email = ?',
+      'SELECT * FROM users WHERE email = ?',
       {
         replacements: [email],
         type: sequelize.QueryTypes.SELECT
       }
     );
+    console.log('🔍 DEBUG: Raw SQL query result:', users);
 
     // Database visibility test - print user data to Render console
     console.log('🔍 DATABASE VISIBILITY TEST - User found:', users[0]);
@@ -57,8 +59,8 @@ exports.login = async (req, res) => {
   } catch (error) {
     console.error('DETAILED LOGIN ERROR:', error);
     res.status(500).json({ 
-      message: 'Server Error', 
-      details: error.message 
+      error: error.message, 
+      stack: error.stack 
     });
   }
 };
