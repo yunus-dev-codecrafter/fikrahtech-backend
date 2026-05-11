@@ -1,4 +1,4 @@
-const { User, School, Payment, Student, sequelize } = require('../models');
+const { User, School, Payment, Student, AcademicSession, sequelize } = require('../models');
 const bcrypt = require('bcryptjs'); // For password hashing (though handled by model hook, good to have for clarity)
 
 /**
@@ -62,18 +62,16 @@ exports.registerSchool = async (req, res) => {
     // 4. Create academic_sessions entry for the school
     console.log('🔍 REGISTRATION: Creating academic session...');
     try {
-      const { sequelize } = require('../models');
-      await sequelize.query(
-        'INSERT INTO academic_sessions (school_id, session, term, status, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())',
-        {
-          replacements: [newSchool.id, current_session, current_term, 'active'],
-          transaction
-        }
-      );
+      await AcademicSession.create({
+        school_id: newSchool.id,
+        name: current_session,
+        is_current: true
+      }, { transaction });
       console.log('🔍 REGISTRATION: Academic session created');
     } catch (error) {
       console.error('🔍 REGISTRATION ERROR - Step 4 (Academic session creation):', error.message);
-      throw error;
+      console.log('🔍 REGISTRATION: Continuing without academic session...');
+      // Don't throw error - allow registration to continue even if session creation fails
     }
 
     // 5. Create school_settings entry with default values
