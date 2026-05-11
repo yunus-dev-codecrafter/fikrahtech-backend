@@ -184,24 +184,23 @@ exports.getAllSchools = async (req, res) => {
  */
 exports.getAdminStats = async (req, res) => {
   try {
+    const { School, Payment, Student } = require('../models');
+
     // Get total schools count
     const totalSchools = await School.count();
 
-    // Sum amount column from payments table
-    const { sequelize } = require('../models');
-    const [revenueResult] = await sequelize.query(
-      'SELECT COALESCE(SUM(amount), 0) as totalRevenue FROM payments',
-      {
-        type: sequelize.QueryTypes.SELECT
-      }
-    );
-    const totalRevenue = revenueResult.totalRevenue;
+    // Get total revenue from payments (return 0 if null)
+    const totalRevenue = await Payment.sum('amount') || 0;
+
+    // Get total students count
+    const totalStudents = await Student.count();
 
     res.status(200).json({
       message: 'Admin statistics retrieved successfully',
       stats: {
         totalSchools,
-        totalRevenue
+        totalRevenue,
+        totalStudents
       }
     });
   } catch (error) {

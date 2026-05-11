@@ -6,23 +6,24 @@ import React, { useState, useEffect } from 'react';
 const Dashboard = () => {
   const [stats, setStats] = useState({
     totalSchools: 0,
-    totalRevenue: 0
+    totalRevenue: 0,
+    totalStudents: 0
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch stats from backend
+  // Fetch stats from backend on page load
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Get auth token from localStorage or context
+        // Get auth token from localStorage
         const token = localStorage.getItem('authToken');
         
         const response = await fetch('https://fikrahtech-backend.onrender.com/api/admin/stats', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}` // Include if you have auth
+            'Authorization': `Bearer ${token}`
           }
         });
 
@@ -71,7 +72,7 @@ const Dashboard = () => {
           </div>
           <div className="stat-content">
             <h3>Total Schools</h3>
-            <p className="stat-number">{stats.totalSchools}</p>
+            <p className="stat-number">{loading ? 'Loading...' : stats.totalSchools}</p>
           </div>
         </div>
 
@@ -82,7 +83,20 @@ const Dashboard = () => {
           </div>
           <div className="stat-content">
             <h3>Total Revenue</h3>
-            <p className="stat-number">${stats.totalRevenue.toFixed(2)}</p>
+            <p className="stat-number">
+              {loading ? 'Loading...' : `NGN ${stats.totalRevenue.toLocaleString()}`}
+            </p>
+          </div>
+        </div>
+
+        {/* Total Students Card */}
+        <div className="stat-card">
+          <div className="stat-icon">
+            👥
+          </div>
+          <div className="stat-content">
+            <h3>Total Students</h3>
+            <p className="stat-number">{loading ? 'Loading...' : stats.totalStudents}</p>
           </div>
         </div>
       </div>
