@@ -237,6 +237,38 @@ exports.getAllSchools = async (req, res) => {
 };
 
 /**
+ * Get all academic sessions for Super Admin
+ */
+exports.getAllSessions = async (req, res) => {
+  try {
+    console.log('🔍 SESSIONS: Fetching all academic sessions...');
+    
+    const { sequelize } = require('../models');
+    
+    // This fetches sessions and joins School name for UI
+    const [sessions] = await sequelize.query(`
+            SELECT s.*, sch.name as school_name 
+            FROM academic_sessions s 
+            LEFT JOIN schools sch ON s.school_id = sch.id
+            ORDER BY s.created_at DESC
+        `);
+
+    console.log('🔍 SESSIONS: Sessions fetched successfully:', sessions.length);
+    
+    res.status(200).json({
+      message: 'Sessions retrieved successfully',
+      count: sessions.length,
+      sessions: sessions
+    });
+  } catch (error) {
+    console.error('🔍 SESSIONS ERROR: Failed to fetch sessions:', error);
+    res.status(500).json({ 
+      message: 'Internal server error' 
+    });
+  }
+};
+
+/**
  * Get Super Admin dashboard statistics
  */
 exports.getAdminStats = async (req, res) => {
