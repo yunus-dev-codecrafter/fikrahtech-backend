@@ -30,6 +30,12 @@ router.get('/revenue', adminController.getAdminStats);
 // Route for Super Admin to get academic sessions
 router.get('/sessions', adminController.getAllSessions);
 
+// Route for Super Admin to get subscription plans
+router.get('/plans', adminController.getPlans);
+
+// Route for Super Admin to create subscription plan
+router.post('/plans', adminController.createPlan);
+
 // Route for role-specific settings
 router.get('/settings', adminController.getSettings);
 
