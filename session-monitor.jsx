@@ -31,7 +31,7 @@ const SessionMonitor = () => {
         
         // Fetch academic sessions for each school
         const schoolsWithSessions = await Promise.all(
-          data.schools.map(async (school) => {
+          (data?.schools || []).map(async (school) => {
             try {
               const sessionResponse = await fetch(
                 `https://fikrahtech-backend.onrender.com/api/admin/schools/${school.id}/sessions`,
@@ -79,6 +79,11 @@ const SessionMonitor = () => {
         setLoading(false);
       }
     };
+  } catch (err) {
+    console.error('Error in fetchSchools:', err);
+    setError(err.message);
+    setLoading(false);
+  }
 
     fetchSchools();
   }, []);
