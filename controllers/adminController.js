@@ -483,26 +483,26 @@ exports.createPlan = async (req, res) => {
 
     const { sequelize } = require('../models');
     
-    // Create table if it doesn't exist
+    // Initialization step - Create table if it doesn't exist
     await sequelize.query(`
       CREATE TABLE IF NOT EXISTS subscription_plans (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         price DECIMAL(10,2) NOT NULL,
-        interval ENUM('monthly', 'yearly') NOT NULL DEFAULT 'monthly',
-        features TEXT,
+        interval VARCHAR(20) NOT NULL DEFAULT 'monthly',
+        features JSON,
         is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
-    // Insert the new plan
+    // Insert the new plan - use backticks for interval (MySQL reserved keyword)
     const [result] = await sequelize.query(`
-      INSERT INTO subscription_plans (name, price, interval, features, is_active, created_at, updated_at)
+      INSERT INTO subscription_plans (name, price, \`interval\`, features, is_active, created_at, updated_at)
       VALUES (?, ?, ?, ?, true, NOW(), NOW())
     `, {
-      replacements: [name, parseFloat(price), interval, features || null]
+      replacements: [name, parseFloat(price), interval, JSON.stringify(features || [])]
     });
 
     console.log('🔍 PLANS: Plan created successfully');
@@ -514,7 +514,7 @@ exports.createPlan = async (req, res) => {
         name,
         price: parseFloat(price),
         interval,
-        features: features || null,
+        features: features || [],
         is_active: true
       }
     });

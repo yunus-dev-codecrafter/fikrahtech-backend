@@ -14,7 +14,7 @@ const SubscriptionPage = () => {
     name: '',
     price: '',
     interval: 'monthly',
-    features: ''
+    features: []
   });
 
   // Fetch plans on component mount
@@ -299,11 +299,14 @@ const SubscriptionPage = () => {
                     Features
                   </label>
                   <textarea
-                    value={formData.features}
-                    onChange={(e) => setFormData({ ...formData, features: e.target.value })}
+                    value={formData.features.join('\n')}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      features: e.target.value.split('\n').filter(f => f.trim()) 
+                    })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     rows="4"
-                    placeholder="List plan features (one per line)&#10;or JSON format"
+                    placeholder="List plan features (one per line)"
                   />
                 </div>
 
