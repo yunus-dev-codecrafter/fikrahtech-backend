@@ -36,7 +36,7 @@ const SubscriptionPage = () => {
         }
 
         const data = await response.json();
-        setPlans(data?.plans || []);
+        setPlans(data?.plans || data?.success ? data.plans : []);
         setLoading(false);
       } catch (err) {
         console.error('Error fetching plans:', err);

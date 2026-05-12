@@ -269,33 +269,6 @@ exports.getAllSessions = async (req, res) => {
 };
 
 /**
- * Get all subscription plans for Super Admin
- */
-exports.getPlans = async (req, res) => {
-  try {
-    console.log('🔍 PLANS: Fetching all subscription plans...');
-    
-    const { sequelize } = require('../models');
-    
-    // If table doesn't exist yet, return an empty array gracefully
-    const [plans] = await sequelize.query('SELECT * FROM subscription_plans ORDER BY price ASC');
-    
-    console.log('🔍 PLANS: Plans fetched successfully:', plans.length);
-    
-    res.status(200).json({ 
-      success: true, 
-      plans: plans 
-    });
-  } catch (error) {
-    console.error('🔍 PLANS ERROR: Failed to fetch plans:', error);
-    res.status(200).json({ 
-      success: true, 
-      plans: [] 
-    }); // Return empty array to prevent frontend crash
-  }
-};
-
-/**
  * Get Super Admin dashboard statistics
  */
 exports.getAdminStats = async (req, res) => {
@@ -463,5 +436,93 @@ exports.updateSchoolSettings = async (req, res) => {
   } catch (error) {
     console.error('Error updating school settings:', error);
     res.status(500).json({ message: 'Failed to update school settings.' });
+  }
+};
+
+/**
+ * Get all subscription plans for Super Admin
+ */
+exports.getPlans = async (req, res) => {
+  try {
+    console.log('🔍 PLANS: Fetching all subscription plans...');
+    
+    const { sequelize } = require('../models');
+    
+    // If table doesn't exist yet, return an empty array gracefully
+    const [plans] = await sequelize.query('SELECT * FROM subscription_plans ORDER BY price ASC');
+    
+    console.log('🔍 PLANS: Plans fetched successfully:', plans.length);
+    
+    res.status(200).json({ 
+      success: true, 
+      plans: plans 
+    });
+  } catch (error) {
+    console.error('🔍 PLANS ERROR: Failed to fetch plans:', error);
+    res.status(200).json({ 
+      success: true, 
+      plans: [] 
+    }); // Return empty array to prevent frontend crash
+  }
+};
+
+/**
+ * Create a new subscription plan (Super Admin only)
+ */
+exports.createPlan = async (req, res) => {
+  try {
+    console.log('🔍 PLANS: Creating new subscription plan...');
+    
+    const { name, price, interval, features } = req.body;
+
+    if (!name || !price || !interval) {
+      return res.status(400).json({ 
+        message: 'Plan name, price, and interval are required.' 
+      });
+    }
+
+    const { sequelize } = require('../models');
+    
+    // Create table if it doesn't exist
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS subscription_plans (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(255) NOT NULL,
+        price DECIMAL(10,2) NOT NULL,
+        interval ENUM('monthly', 'yearly') NOT NULL DEFAULT 'monthly',
+        features TEXT,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Insert the new plan
+    const [result] = await sequelize.query(`
+      INSERT INTO subscription_plans (name, price, interval, features, is_active, created_at, updated_at)
+      VALUES (?, ?, ?, ?, true, NOW(), NOW())
+    `, {
+      replacements: [name, parseFloat(price), interval, features || null]
+    });
+
+    console.log('🔍 PLANS: Plan created successfully');
+    
+    res.status(201).json({
+      message: 'Subscription plan created successfully.',
+      plan: {
+        id: result.insertId || 'generated',
+        name,
+        price: parseFloat(price),
+        interval,
+        features: features || null,
+        is_active: true
+      }
+    });
+  } catch (error) {
+    console.error('🔍 PLANS ERROR: Failed to create plan:', error);
+    res.status(500).json({ 
+      message: 'Failed to create subscription plan.', 
+      error: error.message 
+    });
   }
 };
