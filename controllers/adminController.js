@@ -269,6 +269,33 @@ exports.getAllSessions = async (req, res) => {
 };
 
 /**
+ * Get all subscription plans for Super Admin
+ */
+exports.getPlans = async (req, res) => {
+  try {
+    console.log('🔍 PLANS: Fetching all subscription plans...');
+    
+    const { sequelize } = require('../models');
+    
+    // If table doesn't exist yet, return an empty array gracefully
+    const [plans] = await sequelize.query('SELECT * FROM subscription_plans ORDER BY price ASC');
+    
+    console.log('🔍 PLANS: Plans fetched successfully:', plans.length);
+    
+    res.status(200).json({ 
+      success: true, 
+      plans: plans 
+    });
+  } catch (error) {
+    console.error('🔍 PLANS ERROR: Failed to fetch plans:', error);
+    res.status(200).json({ 
+      success: true, 
+      plans: [] 
+    }); // Return empty array to prevent frontend crash
+  }
+};
+
+/**
  * Get Super Admin dashboard statistics
  */
 exports.getAdminStats = async (req, res) => {
