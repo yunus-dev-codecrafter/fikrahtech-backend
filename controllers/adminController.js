@@ -506,13 +506,17 @@ exports.createPlan = async (req, res) => {
 
     const { sequelize } = require('../models');
     
-    // Initialization step - Create table if it doesn't exist
+    // TEMPORARY: Drop existing table to fix broken schema
+    // TODO: Remove this DROP TABLE line after first successful run to preserve data
+    await sequelize.query(`DROP TABLE IF EXISTS subscription_plans`);
+    
+    // Create fresh table with correct schema
     await sequelize.query(`
-      CREATE TABLE IF NOT EXISTS subscription_plans (
+      CREATE TABLE subscription_plans (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         price DECIMAL(10,2) NOT NULL,
-        \`interval\` VARCHAR(20) NOT NULL DEFAULT 'monthly',
+        \`interval\` VARCHAR(50) NOT NULL DEFAULT 'monthly',
         features LONGTEXT,
         is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
