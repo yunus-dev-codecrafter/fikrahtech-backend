@@ -17,34 +17,35 @@ const SubscriptionPage = () => {
     features: []
   });
 
+  // Fetch plans function
+  const fetchPlans = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch('https://fikrahtech-backend.onrender.com/api/admin/plans', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setPlans(data?.plans || data?.success ? data.plans : []);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching plans:', err);
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
   // Fetch plans on component mount
   useEffect(() => {
-    const fetchPlans = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        
-        const response = await fetch('https://fikrahtech-backend.onrender.com/api/admin/plans', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        setPlans(data?.plans || data?.success ? data.plans : []);
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching plans:', err);
-        setError(err.message);
-        setLoading(false);
-      }
-    };
-
     fetchPlans();
   }, []);
 
@@ -80,15 +81,7 @@ const SubscriptionPage = () => {
         setShowCreateForm(false);
         
         // Re-fetch plans
-        const updatedResponse = await fetch('https://fikrahtech-backend.onrender.com/api/admin/plans', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        const updatedData = await updatedResponse.json();
-        setPlans(updatedData?.plans || []);
+        await fetchPlans();
       } else {
         const errorData = await response.json();
         toast.error(errorData.message || 'Failed to create plan');
@@ -192,7 +185,7 @@ const SubscriptionPage = () => {
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
                         <p className="text-2xl font-bold text-blue-600">
-                          NGN {parseFloat(plan.price).toLocaleString()}
+                          NGN {new Intl.NumberFormat().format(plan.price)}
                           <span className="text-sm text-gray-500 font-normal">/{plan.interval}</span>
                         </p>
                       </div>
@@ -213,11 +206,11 @@ const SubscriptionPage = () => {
                       </div>
                     </div>
                     
-                    {plan.features && Array.isArray(plan.features) && plan.features.length > 0 && (
+                    {plan.features && (
                       <div className="mb-3">
                         <h4 className="text-sm font-medium text-gray-700 mb-2">Features:</h4>
                         <ul className="list-disc list-inside space-y-1">
-                          {plan.features.map((feature, idx) => (
+                          {(typeof plan.features === 'string' ? JSON.parse(plan.features) : plan.features).map((feature, idx) => (
                             <li key={idx} className="text-sm text-gray-600">{feature}</li>
                           ))}
                         </ul>
