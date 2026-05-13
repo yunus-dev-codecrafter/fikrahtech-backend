@@ -75,7 +75,7 @@ const SubscriptionPage = () => {
           name: '',
           price: '',
           interval: 'monthly',
-          features: ''
+          features: []
         });
         setShowCreateForm(false);
         
@@ -213,12 +213,14 @@ const SubscriptionPage = () => {
                       </div>
                     </div>
                     
-                    {plan.features && (
+                    {plan.features && Array.isArray(plan.features) && plan.features.length > 0 && (
                       <div className="mb-3">
                         <h4 className="text-sm font-medium text-gray-700 mb-2">Features:</h4>
-                        <div className="text-sm text-gray-600 whitespace-pre-wrap">
-                          {plan.features}
-                        </div>
+                        <ul className="list-disc list-inside space-y-1">
+                          {plan.features.map((feature, idx) => (
+                            <li key={idx} className="text-sm text-gray-600">{feature}</li>
+                          ))}
+                        </ul>
                       </div>
                     )}
                     
@@ -291,6 +293,7 @@ const SubscriptionPage = () => {
                   >
                     <option value="monthly">Monthly</option>
                     <option value="yearly">Yearly</option>
+                    <option value="termly">Termly</option>
                   </select>
                 </div>
 

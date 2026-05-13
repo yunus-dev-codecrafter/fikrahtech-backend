@@ -17,7 +17,7 @@ module.exports = (sequelize, DataTypes) => {
       comment: 'Monthly/yearly price in NGN'
     },
     interval: {
-      type: DataTypes.ENUM('monthly', 'yearly'),
+      type: DataTypes.ENUM('monthly', 'yearly', 'termly'),
       allowNull: false,
       defaultValue: 'monthly',
       comment: 'Billing interval'

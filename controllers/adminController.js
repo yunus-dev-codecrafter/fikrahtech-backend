@@ -451,11 +451,26 @@ exports.getPlans = async (req, res) => {
     // If table doesn't exist yet, return an empty array gracefully
     const [plans] = await sequelize.query('SELECT * FROM subscription_plans ORDER BY price ASC');
     
-    console.log('🔍 PLANS: Plans fetched successfully:', plans.length);
+    // Parse features for frontend display
+    const plansWithParsedFeatures = plans.map(plan => {
+      let parsedFeatures = [];
+      try {
+        parsedFeatures = typeof plan.features === 'string' ? JSON.parse(plan.features) : (plan.features || []);
+      } catch (e) {
+        console.error('Error parsing features for plan:', plan.id, e);
+        parsedFeatures = [];
+      }
+      return {
+        ...plan,
+        features: parsedFeatures
+      };
+    });
+    
+    console.log('🔍 PLANS: Plans fetched successfully:', plansWithParsedFeatures.length);
     
     res.status(200).json({ 
       success: true, 
-      plans: plans 
+      plans: plansWithParsedFeatures 
     });
   } catch (error) {
     console.error('🔍 PLANS ERROR: Failed to fetch plans:', error);
@@ -481,6 +496,14 @@ exports.createPlan = async (req, res) => {
       });
     }
 
+    // Validate interval options
+    const validIntervals = ['monthly', 'yearly', 'termly'];
+    if (!validIntervals.includes(interval)) {
+      return res.status(400).json({ 
+        message: 'Interval must be one of: monthly, yearly, or termly.' 
+      });
+    }
+
     const { sequelize } = require('../models');
     
     // Initialization step - Create table if it doesn't exist
@@ -489,20 +512,21 @@ exports.createPlan = async (req, res) => {
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         price DECIMAL(10,2) NOT NULL,
-        interval VARCHAR(20) NOT NULL DEFAULT 'monthly',
-        features JSON,
+        \`interval\` VARCHAR(20) NOT NULL DEFAULT 'monthly',
+        features LONGTEXT,
         is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )
     `);
 
     // Insert the new plan - use backticks for interval (MySQL reserved keyword)
-    const [result] = await sequelize.query(`
+    const [insertId] = await sequelize.query(`
       INSERT INTO subscription_plans (name, price, \`interval\`, features, is_active, created_at, updated_at)
       VALUES (?, ?, ?, ?, true, NOW(), NOW())
     `, {
-      replacements: [name, parseFloat(price), interval, JSON.stringify(features || [])]
+      replacements: [name, parseFloat(price), interval, JSON.stringify(features || [])],
+      type: sequelize.QueryTypes.INSERT
     });
 
     console.log('🔍 PLANS: Plan created successfully');
@@ -510,7 +534,7 @@ exports.createPlan = async (req, res) => {
     res.status(201).json({
       message: 'Subscription plan created successfully.',
       plan: {
-        id: result.insertId || 'generated',
+        id: insertId || 'generated',
         name,
         price: parseFloat(price),
         interval,
