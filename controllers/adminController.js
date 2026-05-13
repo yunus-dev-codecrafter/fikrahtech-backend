@@ -220,7 +220,8 @@ exports.getAllSchools = async (req, res) => {
     const schools = await School.findAll({
       attributes: [
         'id', 'name', 'status', 'subscription_expiry', 
-        'trial_period_days', 'created_at', 'updated_at'
+        'trial_period_days', 'created_at', 'updated_at',
+        'is_blocked'
       ],
       order: [['createdAt', 'DESC']]
     });
@@ -233,6 +234,89 @@ exports.getAllSchools = async (req, res) => {
   } catch (error) {
     console.error('Error fetching schools:', error);
     res.status(500).json({ message: 'Failed to retrieve schools.' });
+  }
+};
+
+/**
+ * Get single school details for Super Admin
+ */
+exports.getSchoolById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const school = await School.findByPk(id, {
+      include: [{
+        model: SchoolSettings,
+        as: 'settings'
+      }]
+    });
+
+    if (!school) {
+      return res.status(404).json({ message: 'School not found.' });
+    }
+
+    res.status(200).json({
+      message: 'School retrieved successfully',
+      school: school,
+      settings: school.settings
+    });
+  } catch (error) {
+    console.error('Error fetching school:', error);
+    res.status(500).json({ message: 'Failed to retrieve school.' });
+  }
+};
+
+/**
+ * Update school details (Super Admin only)
+ */
+exports.updateSchool = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, status, trial_period_days } = req.body;
+
+    const school = await School.findByPk(id);
+
+    if (!school) {
+      return res.status(404).json({ message: 'School not found.' });
+    }
+
+    await school.update({
+      name: name || school.name,
+      status: status || school.status,
+      trial_period_days: trial_period_days !== undefined ? trial_period_days : school.trial_period_days
+    });
+
+    res.status(200).json({
+      message: 'School updated successfully',
+      school: school
+    });
+  } catch (error) {
+    console.error('Error updating school:', error);
+    res.status(500).json({ message: 'Failed to update school.' });
+  }
+};
+
+/**
+ * Delete school (Super Admin only)
+ */
+exports.deleteSchool = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const school = await School.findByPk(id);
+
+    if (!school) {
+      return res.status(404).json({ message: 'School not found.' });
+    }
+
+    await school.destroy();
+
+    res.status(200).json({
+      message: 'School deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting school:', error);
+    res.status(500).json({ message: 'Failed to delete school.' });
   }
 };
 
@@ -552,5 +636,126 @@ exports.createPlan = async (req, res) => {
       message: 'Failed to create subscription plan.', 
       error: error.message 
     });
+  }
+};
+
+/**
+ * Assign a subscription plan to a school
+ */
+exports.assignSubscriptionToSchool = async (req, res) => {
+  try {
+    const { schoolId } = req.params;
+    const { plan_id, duration_months } = req.body;
+
+    if (!plan_id || !duration_months) {
+      return res.status(400).json({ 
+        message: 'Plan ID and duration (in months) are required.' 
+      });
+    }
+
+    const { sequelize } = require('../models');
+
+    // Verify school exists
+    const [schools] = await sequelize.query('SELECT * FROM schools WHERE id = ?', {
+      replacements: [schoolId]
+    });
+
+    if (schools.length === 0) {
+      return res.status(404).json({ message: 'School not found.' });
+    }
+
+    // Verify plan exists
+    const [plans] = await sequelize.query('SELECT * FROM subscription_plans WHERE id = ?', {
+      replacements: [plan_id]
+    });
+
+    if (plans.length === 0) {
+      return res.status(404).json({ message: 'Subscription plan not found.' });
+    }
+
+    // Calculate expiry date
+    const startDate = new Date();
+    const expiryDate = new Date();
+    expiryDate.setMonth(expiryDate.getMonth() + parseInt(duration_months));
+
+    // Insert school subscription
+    await sequelize.query(`
+      INSERT INTO school_subscriptions (school_id, plan_id, start_date, expiry_date, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, 'active', NOW(), NOW())
+    `, {
+      replacements: [schoolId, plan_id, startDate, expiryDate]
+    });
+
+    // Update school's subscription expiry
+    await sequelize.query(`
+      UPDATE schools SET subscription_expiry = ?, status = 'active' WHERE id = ?
+    `, {
+      replacements: [expiryDate, schoolId]
+    });
+
+    res.status(201).json({
+      message: 'Subscription assigned to school successfully.',
+      subscription: {
+        school_id: schoolId,
+        plan_id,
+        start_date: startDate,
+        expiry_date: expiryDate,
+        status: 'active'
+      }
+    });
+  } catch (error) {
+    console.error('Error assigning subscription:', error);
+    res.status(500).json({ 
+      message: 'Failed to assign subscription.', 
+      error: error.message 
+    });
+  }
+};
+
+/**
+ * Get all school subscriptions
+ */
+exports.getSchoolSubscriptions = async (req, res) => {
+  try {
+    const { sequelize } = require('../models');
+
+    const [subscriptions] = await sequelize.query(`
+      SELECT ss.*, s.name as school_name, sp.name as plan_name, sp.price as plan_price, sp.interval as plan_interval
+      FROM school_subscriptions ss
+      LEFT JOIN schools s ON ss.school_id = s.id
+      LEFT JOIN subscription_plans sp ON ss.plan_id = sp.id
+      ORDER BY ss.created_at DESC
+    `);
+
+    res.status(200).json({
+      message: 'School subscriptions retrieved successfully',
+      count: subscriptions.length,
+      subscriptions: subscriptions
+    });
+  } catch (error) {
+    console.error('Error fetching school subscriptions:', error);
+    res.status(500).json({ message: 'Failed to retrieve school subscriptions.' });
+  }
+};
+
+/**
+ * Delete a subscription plan
+ */
+exports.deletePlan = async (req, res) => {
+  try {
+    const { planId } = req.params;
+
+    const { sequelize } = require('../models');
+    
+    await sequelize.query('DELETE FROM subscription_plans WHERE id = ?', {
+      replacements: [planId]
+    });
+
+    res.status(200).json({
+      message: 'Subscription plan deleted successfully.'
+    });
+  } catch (error) {
+    console.error('Error deleting plan:', error);
+    res.status(500).json({ message: 'Failed to delete subscription plan.' });
   }
 };

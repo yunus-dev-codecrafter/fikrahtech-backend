@@ -39,11 +39,41 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Strict super_admin role check
-    if (user.role !== 'super_admin') {
-      return res.status(401).json({ 
-        message: 'Unauthorized' 
+    // Check school status for non-super_admin users
+    if (user.role !== 'super_admin' && user.school_id) {
+      const [schools] = await sequelize.query('SELECT * FROM schools WHERE id = ?', {
+        replacements: [user.school_id]
       });
+
+      if (schools.length === 0) {
+        return res.status(401).json({
+          message: 'School not found'
+        });
+      }
+
+      const school = schools[0];
+
+      // Check if school is blocked
+      if (school.is_blocked) {
+        return res.status(403).json({
+          message: 'Your school has been blocked. Please contact the administrator.',
+          error: 'SCHOOL_BLOCKED'
+        });
+      }
+
+      // Check if subscription has expired
+      if (school.subscription_expiry) {
+        const currentDate = new Date();
+        const expiryDate = new Date(school.subscription_expiry);
+
+        if (currentDate > expiryDate) {
+          return res.status(403).json({
+            message: 'Your subscription has expired. Please renew to continue.',
+            error: 'SUBSCRIPTION_EXPIRED',
+            expiry_date: school.subscription_expiry
+          });
+        }
+      }
     }
 
     // Generate JWT token

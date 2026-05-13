@@ -14,12 +14,22 @@ router.post('/schools', adminController.registerSchool);
 
 // Route for Super Admin to toggle the blocked status of a school
 router.put('/schools/:schoolId/toggle-block', adminController.toggleSchoolBlockStatus);
+router.patch('/schools/:schoolId/toggle-block', adminController.toggleSchoolBlockStatus);
 
 // Route for Super Admin to manage school subscriptions
 router.put('/schools/:schoolId/subscription', adminController.updateSchoolSubscription);
 
 // Route for Super Admin to get list of schools
 router.get('/schools', adminController.getAllSchools);
+
+// Route for Super Admin to get single school details
+router.get('/schools/:id', adminController.getSchoolById);
+
+// Route for Super Admin to update school details
+router.put('/schools/:id', adminController.updateSchool);
+
+// Route for Super Admin to delete school
+router.delete('/schools/:id', adminController.deleteSchool);
 
 // Route for Super Admin to get dashboard statistics
 router.get('/stats', adminController.getAdminStats);
@@ -35,6 +45,15 @@ router.get('/plans', adminController.getPlans);
 
 // Route for Super Admin to create subscription plan
 router.post('/plans', adminController.createPlan);
+
+// Route for Super Admin to delete subscription plan
+router.delete('/plans/:planId', adminController.deletePlan);
+
+// Route for Super Admin to assign subscription to school
+router.post('/schools/:schoolId/subscription', adminController.assignSubscriptionToSchool);
+
+// Route for Super Admin to get all school subscriptions
+router.get('/school-subscriptions', adminController.getSchoolSubscriptions);
 
 // Route for role-specific settings
 router.get('/settings', adminController.getSettings);
