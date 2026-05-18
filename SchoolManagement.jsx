@@ -44,7 +44,7 @@ const SchoolManagement = () => {
     try {
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`https://fikrahtech-backend.onrender.com/api/admin/schools/${schoolId}/toggle-block`, {
+      const response = await fetch(`https://fikrahtech-backend.onrender.com/api/admin/schools/${schoolId}/block`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

@@ -25,56 +25,72 @@ const SchoolDetail = () => {
     max_students: null
   });
 
-  // Fetch school details
-  useEffect(() => {
-    const fetchSchoolDetails = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        
-        const response = await fetch(`https://fikrahtech-backend.onrender.com/api/admin/schools/${id}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+  // Consolidated fetch function
+  const fetchSchoolDetails = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch(`https://fikrahtech-backend.onrender.com/api/admin/schools/${id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         }
+      });
 
-        const data = await response.json();
-        setSchool(data.school);
-        setSettings(data.settings);
-        
-        // Set form data
-        setFormData({
-          name: data.school.name,
-          status: data.school.status,
-          trial_period_days: data.school.trial_period_days || 30
-        });
-        
-        if (data.settings) {
-          setSettingsData({
-            current_session: data.settings.current_session || '2023/2024',
-            current_term: data.settings.current_term || 'First Term',
-            currency: data.settings.currency || 'NGN',
-            timezone: data.settings.timezone || 'Africa/Lagos',
-            grading_system: data.settings.grading_system || '5.0',
-            max_students: data.settings.max_students || null
-          });
-        }
-        
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching school details:', err);
-        setError(err.message);
-        setLoading(false);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    };
 
+      const data = await response.json();
+      setSchool(data.school);
+      setSettings(data.settings);
+      
+      // Set form data
+      setFormData({
+        name: data.school.name,
+        status: data.school.status,
+        trial_period_days: data.school.trial_period_days || 30
+      });
+      
+      if (data.settings) {
+        setSettingsData({
+          current_session: data.settings.current_session || '2023/2024',
+          current_term: data.settings.current_term || 'First Term',
+          currency: data.settings.currency || 'NGN',
+          timezone: data.settings.timezone || 'Africa/Lagos',
+          grading_system: data.settings.grading_system || '5.0',
+          max_students: data.settings.max_students || null
+        });
+      }
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching school details:', err);
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchSchoolDetails();
   }, [id]);
+
+  // Handle generic input changes
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'trial_period_days' ? parseInt(value) || 0 : value
+    }));
+  };
+
+  const handleSettingsChange = (e) => {
+    const { name, value } = e.target;
+    setSettingsData(prev => ({
+      ...prev,
+      [name]: name === 'max_students' ? (value ? parseInt(value) : null) : value
+    }));
+  };
 
   // Handle school update
   const handleUpdateSchool = async (e) => {
@@ -133,31 +149,6 @@ const SchoolDetail = () => {
     } catch (err) {
       console.error('Error updating settings:', err);
       toast.error(err.message || 'Network error');
-    }
-  };
-
-  // Refresh function
-  const fetchSchoolDetails = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      
-      const response = await fetch(`https://fikrahtech-backend.onrender.com/api/admin/schools/${id}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setSchool(data.school);
-      setSettings(data.settings);
-    } catch (err) {
-      console.error('Error fetching school details:', err);
     }
   };
 
@@ -226,8 +217,9 @@ const SchoolDetail = () => {
               </label>
               <input
                 type="text"
+                name="name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={handleFormChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
@@ -238,8 +230,9 @@ const SchoolDetail = () => {
                 Status
               </label>
               <select
+                name="status"
                 value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                onChange={handleFormChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="active">Active</option>
@@ -254,8 +247,9 @@ const SchoolDetail = () => {
               </label>
               <input
                 type="number"
+                name="trial_period_days"
                 value={formData.trial_period_days}
-                onChange={(e) => setFormData({ ...formData, trial_period_days: parseInt(e.target.value) })}
+                onChange={handleFormChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 min="0"
               />
@@ -287,8 +281,9 @@ const SchoolDetail = () => {
               </label>
               <input
                 type="text"
+                name="current_session"
                 value={settingsData.current_session}
-                onChange={(e) => setSettingsData({ ...settingsData, current_session: e.target.value })}
+                onChange={handleSettingsChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="e.g., 2023/2024"
               />
@@ -299,8 +294,9 @@ const SchoolDetail = () => {
                 Current Term
               </label>
               <select
+                name="current_term"
                 value={settingsData.current_term}
-                onChange={(e) => setSettingsData({ ...settingsData, current_term: e.target.value })}
+                onChange={handleSettingsChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="First Term">First Term</option>
@@ -315,8 +311,9 @@ const SchoolDetail = () => {
               </label>
               <input
                 type="text"
+                name="currency"
                 value={settingsData.currency}
-                onChange={(e) => setSettingsData({ ...settingsData, currency: e.target.value })}
+                onChange={handleSettingsChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="e.g., NGN"
               />
@@ -328,8 +325,9 @@ const SchoolDetail = () => {
               </label>
               <input
                 type="text"
+                name="timezone"
                 value={settingsData.timezone}
-                onChange={(e) => setSettingsData({ ...settingsData, timezone: e.target.value })}
+                onChange={handleSettingsChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="e.g., Africa/Lagos"
               />
@@ -341,8 +339,9 @@ const SchoolDetail = () => {
               </label>
               <input
                 type="text"
+                name="grading_system"
                 value={settingsData.grading_system}
-                onChange={(e) => setSettingsData({ ...settingsData, grading_system: e.target.value })}
+                onChange={handleSettingsChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="e.g., 5.0"
               />
@@ -354,8 +353,9 @@ const SchoolDetail = () => {
               </label>
               <input
                 type="number"
+                name="max_students"
                 value={settingsData.max_students || ''}
-                onChange={(e) => setSettingsData({ ...settingsData, max_students: e.target.value ? parseInt(e.target.value) : null })}
+                onChange={handleSettingsChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Leave empty for unlimited"
               />

@@ -120,7 +120,7 @@ exports.registerSchool = async (req, res) => {
 /**
  * Toggles the `is_blocked` status for a given school.
  */
-exports.toggleSchoolBlockStatus = async (req, res) => {
+exports.toggleBlockSchool = async (req, res) => {
   const { schoolId } = req.params; // Get school ID from URL parameters
 
   try {
