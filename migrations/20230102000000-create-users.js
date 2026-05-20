@@ -11,13 +11,13 @@ module.exports = {
       },
       school_id: {
         type: Sequelize.UUID,
-        allowNull: false,
+        allowNull: true,
         references: {
           model: 'schools',
           key: 'id'
         },
         onUpdate: 'CASCADE',
-        onDelete: 'CASCADE'
+        onDelete: 'SET NULL'
       },
       email: {
         type: Sequelize.STRING,
