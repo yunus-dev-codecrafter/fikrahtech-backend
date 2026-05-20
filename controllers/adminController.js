@@ -218,18 +218,26 @@ exports.updateSchoolSubscription = async (req, res) => {
 exports.getAllSchools = async (req, res) => {
   try {
     const schools = await School.findAll({
-      attributes: [
-        'id', 'name', 'status', 'subscription_expiry', 
-        'trial_period_days', 'created_at', 'updated_at',
-        'is_blocked'
-      ],
+      include: [{
+        model: User,
+        as: 'users',
+        where: { role: 'proprietor' },
+        required: false
+      }],
       order: [['createdAt', 'DESC']]
+    });
+
+    const schoolsWithEmail = schools.map(s => {
+      const schoolData = s.toJSON();
+      schoolData.proprietor_email = schoolData.users?.[0]?.email || null;
+      delete schoolData.users;
+      return schoolData;
     });
 
     res.status(200).json({
       message: 'Schools retrieved successfully',
-      count: schools.length,
-      schools: schools
+      count: schoolsWithEmail.length,
+      schools: schoolsWithEmail
     });
   } catch (error) {
     console.error('Error fetching schools:', error);
@@ -245,20 +253,32 @@ exports.getSchoolById = async (req, res) => {
     const { id } = req.params;
 
     const school = await School.findByPk(id, {
-      include: [{
-        model: SchoolSettings,
-        as: 'settings'
-      }]
+      include: [
+        {
+          model: User,
+          as: 'users',
+          where: { role: 'proprietor' },
+          required: false
+        },
+        {
+          model: SchoolSettings,
+          as: 'settings'
+        }
+      ]
     });
 
     if (!school) {
       return res.status(404).json({ message: 'School not found.' });
     }
 
+    const schoolJson = school.toJSON();
+    schoolJson.proprietor_email = schoolJson.users?.[0]?.email || null;
+    delete schoolJson.users;
+
     res.status(200).json({
       message: 'School retrieved successfully',
-      school: school,
-      settings: school.settings
+      school: schoolJson,
+      settings: schoolJson.settings
     });
   } catch (error) {
     console.error('Error fetching school:', error);
@@ -270,29 +290,109 @@ exports.getSchoolById = async (req, res) => {
  * Update school details (Super Admin only)
  */
 exports.updateSchool = async (req, res) => {
+  console.log('Updating School ID:', req.params.id);
+  console.log('Incoming Form Data:', req.body);
+
+  const { id } = req.params;
+  const { 
+    name, 
+    phone, 
+    address, 
+    city, 
+    state, 
+    country, 
+    current_session, 
+    current_term, 
+    is_blocked,
+    proprietor_email,
+    email
+  } = req.body;
+
+  const targetEmail = proprietor_email || email;
+
+  let transaction;
   try {
-    const { id } = req.params;
-    const { name, status, trial_period_days } = req.body;
+    transaction = await sequelize.transaction();
 
-    const school = await School.findByPk(id);
+    // Raw SQL Update to ensure all fields are persisted directly to the schools table
+    const updateSchoolQuery = `
+      UPDATE schools 
+      SET name = ?, phone = ?, address = ?, city = ?, state = ?, country = ?, 
+          current_session = ?, current_term = ?, is_blocked = ?, updated_at = NOW()
+      WHERE id = ?
+    `;
 
-    if (!school) {
-      return res.status(404).json({ message: 'School not found.' });
+    const values = [
+      name || null,
+      phone || null,
+      address || null,
+      city || null,
+      state || null,
+      country || null,
+      current_session || null,
+      current_term || null,
+      is_blocked !== undefined ? (is_blocked ? 1 : 0) : 0,
+      id
+    ];
+
+    const [result] = await sequelize.query(updateSchoolQuery, {
+      replacements: values,
+      transaction
+    });
+
+    const affectedRows = result && result.affectedRows !== undefined 
+      ? result.affectedRows 
+      : (result && result.changedRows !== undefined ? result.changedRows : 0);
+
+    if (affectedRows === 0) {
+      await transaction.rollback();
+      return res.status(404).json({ success: false, message: 'No school found matching that ID.' });
     }
 
-    await school.update({
-      name: name || school.name,
-      status: status || school.status,
-      trial_period_days: trial_period_days !== undefined ? trial_period_days : school.trial_period_days
+    // Explicitly update proprietor user email if provided
+    if (targetEmail) {
+      const updateProprietorQuery = `
+        UPDATE users 
+        SET email = ?, updated_at = NOW() 
+        WHERE school_id = ? AND role = 'proprietor'
+      `;
+      await sequelize.query(updateProprietorQuery, {
+        replacements: [targetEmail, id],
+        transaction
+      });
+    }
+
+    await transaction.commit();
+
+    // Fetch the updated school with proprietor user and settings
+    const updatedSchool = await School.findByPk(id, {
+      include: [
+        {
+          model: User,
+          as: 'users',
+          where: { role: 'proprietor' },
+          required: false
+        },
+        {
+          model: SchoolSettings,
+          as: 'settings'
+        }
+      ]
     });
 
+    const schoolJson = updatedSchool.toJSON();
+    schoolJson.proprietor_email = schoolJson.users?.[0]?.email || null;
+    delete schoolJson.users;
+
     res.status(200).json({
+      success: true,
       message: 'School updated successfully',
-      school: school
+      school: schoolJson
     });
   } catch (error) {
+    if (transaction) await transaction.rollback();
     console.error('Error updating school:', error);
-    res.status(500).json({ message: 'Failed to update school.' });
+    res.status(500).json({ success: false, message: 'Failed to update school.', error: error.message });
   }
 };
 

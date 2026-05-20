@@ -14,6 +14,34 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.BOOLEAN,
       defaultValue: false
     },
+    phone: {
+      type: DataTypes.STRING(20),
+      allowNull: true
+    },
+    address: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    city: {
+      type: DataTypes.STRING(100),
+      allowNull: true
+    },
+    state: {
+      type: DataTypes.STRING(100),
+      allowNull: true
+    },
+    country: {
+      type: DataTypes.STRING(100),
+      allowNull: true
+    },
+    current_session: {
+      type: DataTypes.STRING(255),
+      allowNull: true
+    },
+    current_term: {
+      type: DataTypes.STRING(255),
+      allowNull: true
+    },
     sub_expiry: {
       type: DataTypes.DATE,
       allowNull: true
