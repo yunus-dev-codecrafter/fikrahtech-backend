@@ -426,29 +426,36 @@ exports.deleteSchool = async (req, res) => {
  */
 exports.getAllSessions = async (req, res) => {
   try {
-    console.log('🔍 SESSIONS: Fetching all academic sessions...');
-    
-    const { sequelize } = require('../models');
-    
-    // This fetches sessions and joins School name for UI
-    const [sessions] = await sequelize.query(`
-            SELECT s.*, sch.name as school_name 
-            FROM academic_sessions s 
-            LEFT JOIN schools sch ON s.school_id = sch.id
-            ORDER BY s.created_at DESC
-        `);
+    console.log('🔍 SESSIONS: Fetching school session overview...');
 
-    console.log('🔍 SESSIONS: Sessions fetched successfully:', sessions.length);
-    
+    // Return one row per school showing which session/term it is currently running
+    const [sessions] = await sequelize.query(`
+      SELECT
+        s.id          AS school_id,
+        s.name        AS school_name,
+        s.status,
+        s.current_session AS current_session_name,
+        s.current_term    AS current_term_name,
+        asess.name    AS active_session_record,
+        asess.id      AS active_session_id
+      FROM schools s
+      LEFT JOIN academic_sessions asess
+        ON asess.school_id = s.id
+        AND asess.name = s.current_session
+      ORDER BY s.name ASC
+    `);
+
+    console.log('🔍 SESSIONS: Fetched successfully:', sessions.length, 'schools');
+
     res.status(200).json({
       message: 'Sessions retrieved successfully',
       count: sessions.length,
-      sessions: sessions
+      sessions
     });
   } catch (error) {
     console.error('🔍 SESSIONS ERROR: Failed to fetch sessions:', error);
-    res.status(500).json({ 
-      message: 'Internal server error' 
+    res.status(500).json({
+      message: 'Internal server error'
     });
   }
 };
