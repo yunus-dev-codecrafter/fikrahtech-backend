@@ -13,7 +13,32 @@ if (process.env.JWT_SECRET) {
 const PORT = process.env.PORT || 3000;
 
 // Sync Sequelize models with database
-db.sequelize.sync({ alter: true }) // Use alter: true to update schema without dropping data
+const syncDatabase = async () => {
+  try {
+    console.log('🔄 Running forced database schema migrations...');
+    
+    // 1. Temporarily disable foreign key checks so MySQL doesn't block the change
+    await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 0;');
+    
+    // 2. Drop the conflicting foreign key constraint if it exists
+    await db.sequelize.query('ALTER TABLE `users` DROP FOREIGN KEY IF EXISTS `users_ibfk_1`;');
+    
+    // 3. Force alter the column itself to accept NULL values natively
+    await db.sequelize.query('ALTER TABLE `users` MODIFY COLUMN `school_id` CHAR(36) NULL;');
+    
+    // 4. Re-enable foreign key validations
+    await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1;');
+    
+    console.log('✅ Forced schema modifications applied successfully.');
+  } catch (migrationError) {
+    console.error('⚠️ Critical step migration warning:', migrationError.message);
+    // Continue anyway to let sync attempt mapping configurations
+  }
+  
+  return db.sequelize.sync({ alter: true });
+};
+
+syncDatabase()
   .then(async () => {
     console.log('Database synced successfully.');
     

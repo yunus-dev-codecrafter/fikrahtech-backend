@@ -86,7 +86,10 @@ module.exports = (sequelize, DataTypes) => {
 
   School.associate = (models) => {
     School.hasMany(models.User, {
-      foreignKey: 'school_id',
+      foreignKey: {
+        name: 'school_id',
+        allowNull: true
+      },
       as: 'users',
       onDelete: 'SET NULL',
       onUpdate: 'CASCADE'

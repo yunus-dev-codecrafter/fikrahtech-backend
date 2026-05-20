@@ -2,8 +2,22 @@ require('dotenv').config();
 const db = require('./models');
 const { bootstrapSystem } = require('./utils/bootstrap');
 
-console.log('Testing DB sync and bootstrap...');
-db.sequelize.sync({ alter: true })
+const syncDatabase = async () => {
+  try {
+    console.log('🔄 Running forced database schema migrations...');
+    await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 0;');
+    await db.sequelize.query('ALTER TABLE `users` DROP FOREIGN KEY IF EXISTS `users_ibfk_1`;');
+    await db.sequelize.query('ALTER TABLE `users` MODIFY COLUMN `school_id` CHAR(36) NULL;');
+    await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1;');
+    console.log('✅ Forced schema modifications applied successfully.');
+  } catch (migrationError) {
+    console.error('⚠️ Critical step migration warning:', migrationError.message);
+  }
+  
+  return db.sequelize.sync({ alter: true });
+};
+
+syncDatabase()
   .then(async () => {
     console.log('✅ DB Synced successfully!');
     const res = await bootstrapSystem();

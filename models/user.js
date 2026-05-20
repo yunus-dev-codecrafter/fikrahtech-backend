@@ -59,7 +59,10 @@ module.exports = (sequelize, DataTypes) => {
 
   User.associate = (models) => {
     User.belongsTo(models.School, {
-      foreignKey: 'school_id',
+      foreignKey: {
+        name: 'school_id',
+        allowNull: true
+      },
       as: 'school',
       onDelete: 'SET NULL',
       onUpdate: 'CASCADE'
