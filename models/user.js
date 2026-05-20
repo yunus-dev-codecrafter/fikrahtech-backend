@@ -10,7 +10,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     school_id: {
       type: DataTypes.UUID,
-      allowNull: false,
+      allowNull: true,
       references: {
         model: 'schools', // Refers to the 'schools' table
         key: 'id'

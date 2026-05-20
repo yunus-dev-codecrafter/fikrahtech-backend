@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
+const revenueController = require('../controllers/revenueController');
 const { verifyToken, isAdmin } = require('../middleware/verifyToken');
 
 // Apply authentication middleware to all admin routes
@@ -35,6 +36,15 @@ router.get('/stats', adminController.getAdminStats);
 
 // Route for Super Admin to get revenue data
 router.get('/revenue', adminController.getAdminStats);
+
+// Route for Super Admin to record a manual revenue payment
+router.post('/revenue/record', revenueController.recordPayment);
+
+// Route for Super Admin to get revenue summary statistics
+router.get('/revenue/summary', revenueController.getRevenueSummary);
+
+// Route for Super Admin to get revenue list
+router.get('/revenue/list', revenueController.getRevenueList);
 
 // Route for Super Admin to get academic sessions
 router.get('/sessions', adminController.getAllSessions);

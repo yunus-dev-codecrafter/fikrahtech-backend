@@ -1,8 +1,8 @@
 module.exports = (sequelize, DataTypes) => {
   const SubscriptionPlan = sequelize.define('SubscriptionPlan', {
     id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
       primaryKey: true,
       allowNull: false
     },
@@ -14,13 +14,19 @@ module.exports = (sequelize, DataTypes) => {
     price: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
-      comment: 'Monthly/yearly price in NGN'
+      comment: 'Price in NGN'
     },
-    interval: {
-      type: DataTypes.ENUM('monthly', 'yearly', 'termly'),
+    billing_cycle: {
+      type: DataTypes.ENUM('monthly', 'termly', 'session'),
       allowNull: false,
       defaultValue: 'monthly',
-      comment: 'Billing interval'
+      comment: 'Billing cycle/interval'
+    },
+    discount_amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.00,
+      comment: 'Discount amount'
     },
     features: {
       type: DataTypes.TEXT,

@@ -36,7 +36,7 @@ async function bootstrapSystem() {
                 email: adminCredentials.email,
                 password: adminCredentials.plainPassword, // Let User model hooks handle hashing
                 role: 'super_admin',
-                school_id: school.id,
+                school_id: null,
                 name: adminCredentials.name
             }
         });
@@ -45,13 +45,13 @@ async function bootstrapSystem() {
             console.log('✅ NEW Super Admin created successfully');
             console.log(`📧 Email: ${adminCredentials.email}`);
             console.log(`👤 Name: ${adminCredentials.name}`);
-            console.log(`🏫 School ID: ${school.id}`);
+            console.log(`🏫 School ID: null`);
         } else {
             // Update existing user's password and role - Use plain text, let model hooks hash it
             await user.update({
                 password: adminCredentials.plainPassword, // Let User model hooks handle hashing
                 role: 'super_admin',
-                school_id: school.id,
+                school_id: null,
                 name: adminCredentials.name
             });
             console.log('✅ Existing Super Admin updated successfully');

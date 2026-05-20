@@ -1,4 +1,4 @@
-const { User, School, Payment, Student, AcademicSession, SchoolSettings, sequelize } = require('../models');
+const { User, School, Payment, Student, AcademicSession, SchoolSettings, SubscriptionPlan, sequelize } = require('../models');
 const bcrypt = require('bcryptjs'); // For password hashing (though handled by model hook, good to have for clarity)
 
 /**
@@ -428,20 +428,24 @@ exports.getAllSessions = async (req, res) => {
   try {
     console.log('🔍 SESSIONS: Fetching school session overview...');
 
-    // Return one row per school showing which session/term it is currently running
+    // Return one row per school showing which session/term it is currently running from school_settings
     const [sessions] = await sequelize.query(`
       SELECT
         s.id          AS school_id,
         s.name        AS school_name,
         s.status,
-        s.current_session AS current_session_name,
-        s.current_term    AS current_term_name,
+        COALESCE(ss.currentSession, ss.current_session, s.current_session) AS current_session_name,
+        COALESCE(ss.currentTerm, ss.current_term, s.current_term)       AS current_term_name,
+        COALESCE(ss.currentSession, ss.current_session, s.current_session) AS current_session,
+        COALESCE(ss.currentTerm, ss.current_term, s.current_term)       AS current_term,
         asess.name    AS active_session_record,
         asess.id      AS active_session_id
       FROM schools s
+      LEFT JOIN school_settings ss
+        ON ss.school_id = s.id
       LEFT JOIN academic_sessions asess
         ON asess.school_id = s.id
-        AND asess.name = s.current_session
+        AND asess.name = COALESCE(ss.currentSession, ss.current_session, s.current_session)
       ORDER BY s.name ASC
     `);
 
@@ -637,13 +641,8 @@ exports.updateSchoolSettings = async (req, res) => {
 exports.getPlans = async (req, res) => {
   try {
     console.log('🔍 PLANS: Fetching all subscription plans...');
+    const plans = await SubscriptionPlan.findAll({ order: [['price', 'ASC']] });
     
-    const { sequelize } = require('../models');
-    
-    // If table doesn't exist yet, return an empty array gracefully
-    const [plans] = await sequelize.query('SELECT * FROM subscription_plans ORDER BY price ASC');
-    
-    // Parse features for frontend display
     const plansWithParsedFeatures = plans.map(plan => {
       let parsedFeatures = [];
       try {
@@ -653,8 +652,15 @@ exports.getPlans = async (req, res) => {
         parsedFeatures = [];
       }
       return {
-        ...plan,
-        features: parsedFeatures
+        id: plan.id,
+        name: plan.name,
+        price: parseFloat(plan.price),
+        billing_cycle: plan.billing_cycle,
+        discount_amount: parseFloat(plan.discount_amount),
+        features: parsedFeatures,
+        is_active: plan.is_active,
+        created_at: plan.created_at,
+        updated_at: plan.updated_at
       };
     });
     
@@ -680,62 +686,50 @@ exports.createPlan = async (req, res) => {
   try {
     console.log('🔍 PLANS: Creating new subscription plan...');
     
-    const { name, price, interval, features } = req.body;
+    const { name, price, interval, billing_cycle, discount_amount, features } = req.body;
 
-    if (!name || !price || !interval) {
+    const cycle = billing_cycle || interval;
+
+    if (!name || price === undefined || !cycle) {
       return res.status(400).json({ 
-        message: 'Plan name, price, and interval are required.' 
+        message: 'Plan name, price, and billing cycle (or interval) are required.' 
       });
     }
 
-    // Validate interval options
-    const validIntervals = ['monthly', 'yearly', 'termly'];
-    if (!validIntervals.includes(interval)) {
+    // Validate cycle/interval options and map to valid billing cycles ('monthly', 'termly', 'session')
+    let mappedCycle = cycle.toLowerCase();
+    if (mappedCycle === 'yearly') {
+      mappedCycle = 'session';
+    }
+
+    const validCycles = ['monthly', 'termly', 'session'];
+    if (!validCycles.includes(mappedCycle)) {
       return res.status(400).json({ 
-        message: 'Interval must be one of: monthly, yearly, or termly.' 
+        message: 'Billing cycle must be one of: monthly, termly, or session.' 
       });
     }
 
-    const { sequelize } = require('../models');
-    
-    // TEMPORARY: Drop existing table to fix broken schema
-    // TODO: Remove this DROP TABLE line after first successful run to preserve data
-    await sequelize.query(`DROP TABLE IF EXISTS subscription_plans`);
-    
-    // Create fresh table with correct schema
-    await sequelize.query(`
-      CREATE TABLE subscription_plans (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        price DECIMAL(10,2) NOT NULL,
-        \`interval\` VARCHAR(50) NOT NULL DEFAULT 'monthly',
-        features LONGTEXT,
-        is_active BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      )
-    `);
-
-    // Insert the new plan - use backticks for interval (MySQL reserved keyword)
-    const [insertId] = await sequelize.query(`
-      INSERT INTO subscription_plans (name, price, \`interval\`, features, is_active, created_at, updated_at)
-      VALUES (?, ?, ?, ?, true, NOW(), NOW())
-    `, {
-      replacements: [name, parseFloat(price), interval, JSON.stringify(features || [])],
-      type: sequelize.QueryTypes.INSERT
+    const plan = await SubscriptionPlan.create({
+      name,
+      price: parseFloat(price),
+      billing_cycle: mappedCycle,
+      discount_amount: discount_amount ? parseFloat(discount_amount) : 0.00,
+      features: features ? (typeof features === 'string' ? features : JSON.stringify(features)) : '[]',
+      is_active: true
     });
 
-    console.log('🔍 PLANS: Plan created successfully');
+    console.log('🔍 PLANS: Plan created successfully with ID:', plan.id);
     
     res.status(201).json({
       message: 'Subscription plan created successfully.',
       plan: {
-        id: insertId || 'generated',
-        name,
-        price: parseFloat(price),
-        interval,
+        id: plan.id,
+        name: plan.name,
+        price: parseFloat(plan.price),
+        billing_cycle: plan.billing_cycle,
+        discount_amount: parseFloat(plan.discount_amount),
         features: features || [],
-        is_active: true
+        is_active: plan.is_active
       }
     });
   } catch (error) {
@@ -858,7 +852,7 @@ exports.getSchoolSubscriptions = async (req, res) => {
     const { sequelize } = require('../models');
 
     const [subscriptions] = await sequelize.query(`
-      SELECT ss.*, s.name as school_name, sp.name as plan_name, sp.price as plan_price, sp.interval as plan_interval
+      SELECT ss.*, s.name as school_name, sp.name as plan_name, sp.price as plan_price, sp.billing_cycle as plan_interval
       FROM school_subscriptions ss
       LEFT JOIN schools s ON ss.school_id = s.id
       LEFT JOIN subscription_plans sp ON ss.plan_id = sp.id
@@ -883,10 +877,8 @@ exports.deletePlan = async (req, res) => {
   try {
     const { planId } = req.params;
 
-    const { sequelize } = require('../models');
-    
-    await sequelize.query('DELETE FROM subscription_plans WHERE id = ?', {
-      replacements: [planId]
+    await SubscriptionPlan.destroy({
+      where: { id: planId }
     });
 
     res.status(200).json({
