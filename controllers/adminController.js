@@ -1,4 +1,4 @@
-const { User, School, Payment, Student, AcademicSession, SchoolSettings, SubscriptionPlan, sequelize } = require('../models');
+const { User, School, Payment, Student, AcademicSession, SchoolSettings, SubscriptionPlan, SchoolPlan, sequelize } = require('../models');
 const bcrypt = require('bcryptjs'); // For password hashing (though handled by model hook, good to have for clarity)
 
 /**
@@ -684,14 +684,27 @@ exports.getPlans = async (req, res) => {
  * Create a new subscription plan (Super Admin only)
  */
 exports.createPlan = async (req, res) => {
+  const transaction = await sequelize.transaction();
   try {
-    console.log('🔍 PLANS: Creating new subscription plan...');
+    console.log('🔍 PLANS: Creating new subscription plan inside transaction...');
     
-    const { name, price, interval, billing_cycle, discount_amount, features } = req.body;
+    // 1. Destructure the updated structural data payload from frontend
+    const { 
+      name, 
+      price, 
+      interval, 
+      billing_cycle, 
+      discount_amount, 
+      features, 
+      schoolIds, 
+      startDate, 
+      endDate 
+    } = req.body;
 
     const cycle = billing_cycle || interval;
 
     if (!name || price === undefined || !cycle) {
+      await transaction.rollback();
       return res.status(400).json({ 
         message: 'Plan name, price, and billing cycle (or interval) are required.' 
       });
@@ -705,11 +718,23 @@ exports.createPlan = async (req, res) => {
 
     const validCycles = ['monthly', 'termly', 'session'];
     if (!validCycles.includes(mappedCycle)) {
+      await transaction.rollback();
       return res.status(400).json({ 
         message: 'Billing cycle must be one of: monthly, termly, or session.' 
       });
     }
 
+    // If schoolIds are provided, validate timeline bounds (start_date, end_date)
+    if (schoolIds && Array.isArray(schoolIds) && schoolIds.length > 0) {
+      if (!startDate || !endDate) {
+        await transaction.rollback();
+        return res.status(400).json({
+          message: 'Both start date and end date are required when associating schools.'
+        });
+      }
+    }
+
+    // 2. Build the base architectural plan entity
     const plan = await SubscriptionPlan.create({
       name,
       price: parseFloat(price),
@@ -717,11 +742,30 @@ exports.createPlan = async (req, res) => {
       discount_amount: discount_amount ? parseFloat(discount_amount) : 0.00,
       features: features ? (typeof features === 'string' ? features : JSON.stringify(features)) : '[]',
       is_active: true
-    });
+    }, { transaction });
 
-    console.log('🔍 PLANS: Plan created successfully with ID:', plan.id);
+    // 3. Process the explicit school mappings if provided
+    if (schoolIds && Array.isArray(schoolIds) && schoolIds.length > 0) {
+      const linkages = schoolIds.map(schoolId => ({
+        plan_id: plan.id,
+        school_id: schoolId,
+        start_date: startDate,
+        end_date: endDate
+      }));
+
+      await SchoolPlan.bulkCreate(linkages, { transaction });
+    }
+
+    await transaction.commit();
+    console.log('🔍 PLANS: Plan and associated school mappings created successfully with ID:', plan.id);
     
-    res.status(201).json({
+    // Parse features if they are stringified
+    let parsedFeatures = [];
+    if (features) {
+      parsedFeatures = typeof features === 'string' ? JSON.parse(features) : features;
+    }
+
+    return res.status(201).json({
       message: 'Subscription plan created successfully.',
       plan: {
         id: plan.id,
@@ -729,14 +773,16 @@ exports.createPlan = async (req, res) => {
         price: parseFloat(plan.price),
         billing_cycle: plan.billing_cycle,
         discount_amount: parseFloat(plan.discount_amount),
-        features: features || [],
+        features: parsedFeatures,
         is_active: plan.is_active
       }
     });
+
   } catch (error) {
-    console.error('🔍 PLANS ERROR: Failed to create plan:', error);
-    res.status(500).json({ 
-      message: 'Failed to create subscription plan.', 
+    if (transaction) await transaction.rollback();
+    console.error('❌ Error in plan creation controller:', error);
+    return res.status(500).json({ 
+      message: 'Failed to create subscription plan alignment.',
       error: error.message 
     });
   }
