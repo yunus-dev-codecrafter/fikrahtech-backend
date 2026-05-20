@@ -217,27 +217,28 @@ exports.updateSchoolSubscription = async (req, res) => {
  */
 exports.getAllSchools = async (req, res) => {
   try {
-    const schools = await School.findAll({
-      include: [{
-        model: User,
-        as: 'users',
-        where: { role: 'proprietor' },
-        required: false
-      }],
-      order: [['createdAt', 'DESC']]
-    });
-
-    const schoolsWithEmail = schools.map(s => {
-      const schoolData = s.toJSON();
-      schoolData.proprietor_email = schoolData.users?.[0]?.email || null;
-      delete schoolData.users;
-      return schoolData;
-    });
+    const [schools] = await sequelize.query(`
+      SELECT
+        s.*,
+        u.email AS proprietor_email,
+        ss.start_date,
+        ss.expiry_date,
+        sp.name  AS plan_name,
+        sp.price AS plan_price
+      FROM schools s
+      LEFT JOIN users u
+        ON u.school_id = s.id AND u.role = 'proprietor'
+      LEFT JOIN school_subscriptions ss
+        ON ss.school_id = s.id
+      LEFT JOIN subscription_plans sp
+        ON sp.id = ss.plan_id
+      ORDER BY s.created_at DESC
+    `);
 
     res.status(200).json({
       message: 'Schools retrieved successfully',
-      count: schoolsWithEmail.length,
-      schools: schoolsWithEmail
+      count: schools.length,
+      schools
     });
   } catch (error) {
     console.error('Error fetching schools:', error);
