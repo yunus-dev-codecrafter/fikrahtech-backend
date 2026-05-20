@@ -745,15 +745,36 @@ exports.createPlan = async (req, res) => {
 exports.assignSubscriptionToSchool = async (req, res) => {
   try {
     const { schoolId } = req.params;
-    const { plan_id, duration_months } = req.body;
+    const { planId, plan_id, startDate, start_date, expiryDate, expiry_date } = req.body;
 
-    if (!plan_id || !duration_months) {
-      return res.status(400).json({ 
-        message: 'Plan ID and duration (in months) are required.' 
-      });
+    const final_plan_id = planId || plan_id;
+    const final_start_date = startDate || start_date;
+    const final_expiry_date = expiryDate || expiry_date;
+
+    if (!final_plan_id) {
+      return res.status(400).json({ message: 'Plan ID (planId or plan_id) is required.' });
+    }
+    if (!final_start_date) {
+      return res.status(400).json({ message: 'Start date (startDate or start_date) is required.' });
+    }
+    if (!final_expiry_date) {
+      return res.status(400).json({ message: 'Expiry date (expiryDate or expiry_date) is required.' });
     }
 
     const { sequelize } = require('../models');
+
+    // Ensure the school_subscriptions junction table is safely initialized:
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS school_subscriptions (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          school_id VARCHAR(255) NOT NULL,
+          plan_id INT NOT NULL,
+          start_date DATE NOT NULL,
+          expiry_date DATE NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
 
     // Verify school exists
     const [schools] = await sequelize.query('SELECT * FROM schools WHERE id = ?', {
@@ -766,40 +787,49 @@ exports.assignSubscriptionToSchool = async (req, res) => {
 
     // Verify plan exists
     const [plans] = await sequelize.query('SELECT * FROM subscription_plans WHERE id = ?', {
-      replacements: [plan_id]
+      replacements: [final_plan_id]
     });
 
     if (plans.length === 0) {
       return res.status(404).json({ message: 'Subscription plan not found.' });
     }
 
-    // Calculate expiry date
-    const startDate = new Date();
-    const expiryDate = new Date();
-    expiryDate.setMonth(expiryDate.getMonth() + parseInt(duration_months));
-
-    // Insert school subscription
-    await sequelize.query(`
-      INSERT INTO school_subscriptions (school_id, plan_id, start_date, expiry_date, status, created_at, updated_at)
-      VALUES (?, ?, ?, ?, 'active', NOW(), NOW())
-    `, {
-      replacements: [schoolId, plan_id, startDate, expiryDate]
+    // Implement upsert mechanism
+    const [existing] = await sequelize.query('SELECT * FROM school_subscriptions WHERE school_id = ?', {
+      replacements: [schoolId]
     });
+
+    if (existing.length > 0) {
+      await sequelize.query(`
+        UPDATE school_subscriptions 
+        SET plan_id = ?, start_date = ?, expiry_date = ?, updated_at = NOW()
+        WHERE school_id = ?
+      `, {
+        replacements: [final_plan_id, final_start_date, final_expiry_date, schoolId]
+      });
+    } else {
+      await sequelize.query(`
+        INSERT INTO school_subscriptions (school_id, plan_id, start_date, expiry_date, updated_at)
+        VALUES (?, ?, ?, ?, NOW())
+      `, {
+        replacements: [schoolId, final_plan_id, final_start_date, final_expiry_date]
+      });
+    }
 
     // Update school's subscription expiry
     await sequelize.query(`
       UPDATE schools SET subscription_expiry = ?, status = 'active' WHERE id = ?
     `, {
-      replacements: [expiryDate, schoolId]
+      replacements: [final_expiry_date, schoolId]
     });
 
     res.status(201).json({
       message: 'Subscription assigned to school successfully.',
       subscription: {
         school_id: schoolId,
-        plan_id,
-        start_date: startDate,
-        expiry_date: expiryDate,
+        plan_id: final_plan_id,
+        start_date: final_start_date,
+        expiry_date: final_expiry_date,
         status: 'active'
       }
     });
