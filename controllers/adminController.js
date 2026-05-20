@@ -918,21 +918,49 @@ exports.getSchoolSubscriptions = async (req, res) => {
 };
 
 /**
- * Delete a subscription plan
+ * Update a subscription plan (Super Admin only)
+ */
+exports.updatePlan = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, price, billing_cycle, discount_amount, features } = req.body;
+
+    const plan = await SubscriptionPlan.findByPk(id);
+    if (!plan) {
+      return res.status(404).json({ success: false, error: 'Plan not found' });
+    }
+
+    await plan.update({
+      name,
+      price,
+      billing_cycle,
+      discount_amount,
+      features: typeof features === 'string' ? JSON.parse(features) : features
+    });
+
+    return res.status(200).json({ success: true, data: plan });
+  } catch (error) {
+    console.error('❌ Error updating plan:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Delete a subscription plan (Super Admin only)
  */
 exports.deletePlan = async (req, res) => {
   try {
-    const { planId } = req.params;
+    const { id } = req.params;
 
-    await SubscriptionPlan.destroy({
-      where: { id: planId }
-    });
+    const plan = await SubscriptionPlan.findByPk(id);
+    if (!plan) {
+      return res.status(404).json({ success: false, error: 'Plan not found' });
+    }
 
-    res.status(200).json({
-      message: 'Subscription plan deleted successfully.'
-    });
+    await plan.destroy();
+    return res.status(200).json({ success: true, message: 'Plan removed successfully' });
   } catch (error) {
-    console.error('Error deleting plan:', error);
-    res.status(500).json({ message: 'Failed to delete subscription plan.' });
+    console.error('❌ Error deleting plan:', error);
+    return res.status(500).json({ success: false, error: error.message });
   }
 };

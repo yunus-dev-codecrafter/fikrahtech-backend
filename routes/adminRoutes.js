@@ -55,8 +55,11 @@ router.get('/plans', adminController.getPlans);
 // Route for Super Admin to create subscription plan
 router.post('/plans', adminController.createPlan);
 
+// Route for Super Admin to update subscription plan
+router.put('/plans/:id', adminController.updatePlan);
+
 // Route for Super Admin to delete subscription plan
-router.delete('/plans/:planId', adminController.deletePlan);
+router.delete('/plans/:id', adminController.deletePlan);
 
 // Route for Super Admin to assign subscription to school
 router.post('/schools/:schoolId/subscription', adminController.assignSubscriptionToSchool);
