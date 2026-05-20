@@ -4,14 +4,18 @@ const { bootstrapSystem } = require('./utils/bootstrap');
 
 const syncDatabase = async () => {
   try {
-    console.log('🔄 Running forced database schema migrations...');
+    console.log('🔄 Running safe native schema migration overrides...');
     await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 0;');
-    await db.sequelize.query('ALTER TABLE `users` DROP FOREIGN KEY IF EXISTS `users_ibfk_1`;');
+    try {
+      await db.sequelize.query('ALTER TABLE `users` DROP FOREIGN KEY `users_ibfk_1`;');
+    } catch (err) {
+      console.log('ℹ️ Constraint users_ibfk_1 already dropped or not found.');
+    }
     await db.sequelize.query('ALTER TABLE `users` MODIFY COLUMN `school_id` CHAR(36) NULL;');
     await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1;');
-    console.log('✅ Forced schema modifications applied successfully.');
+    console.log('✅ Native constraints unlinked and school_id successfully altered.');
   } catch (migrationError) {
-    console.error('⚠️ Critical step migration warning:', migrationError.message);
+    console.error('⚠️ Migration failure:', migrationError.message);
   }
   
   return db.sequelize.sync({ alter: true });

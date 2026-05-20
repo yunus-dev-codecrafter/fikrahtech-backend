@@ -15,24 +15,27 @@ const PORT = process.env.PORT || 3000;
 // Sync Sequelize models with database
 const syncDatabase = async () => {
   try {
-    console.log('🔄 Running forced database schema migrations...');
+    console.log('🔄 Running safe native schema migration overrides...');
     
-    // 1. Temporarily disable foreign key checks so MySQL doesn't block the change
+    // Disable checks to allow raw changes
     await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 0;');
     
-    // 2. Drop the conflicting foreign key constraint if it exists
-    await db.sequelize.query('ALTER TABLE `users` DROP FOREIGN KEY IF EXISTS `users_ibfk_1`;');
-    
-    // 3. Force alter the column itself to accept NULL values natively
+    // Drop the constraint using standard SQL syntax. Wrapped in try/catch to ignore if it doesn't exist
+    try {
+      await db.sequelize.query('ALTER TABLE `users` DROP FOREIGN KEY `users_ibfk_1`;');
+    } catch (err) {
+      console.log('ℹ️ Constraint users_ibfk_1 already dropped or not found.');
+    }
+
+    // Force alter the underlying database storage row to accept null states natively
     await db.sequelize.query('ALTER TABLE `users` MODIFY COLUMN `school_id` CHAR(36) NULL;');
     
-    // 4. Re-enable foreign key validations
+    // Re-enable relational safety parameters
     await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1;');
     
-    console.log('✅ Forced schema modifications applied successfully.');
+    console.log('✅ Native constraints unlinked and school_id successfully altered.');
   } catch (migrationError) {
-    console.error('⚠️ Critical step migration warning:', migrationError.message);
-    // Continue anyway to let sync attempt mapping configurations
+    console.error('⚠️ Migration failure:', migrationError.message);
   }
   
   return db.sequelize.sync({ alter: true });
