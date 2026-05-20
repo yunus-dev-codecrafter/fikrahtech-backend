@@ -79,7 +79,37 @@ const syncDatabase = async () => {
     console.error('⚠️ Error creating subscription_plans table:', err.message);
   }
 
-  // 6. Ensure school_plans table exists
+  // 6. Patch missing columns on existing subscription_plans table
+  console.log('🔄 Checking and patching subscription_plans columns...');
+  try {
+    await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 0;');
+
+    try {
+      await db.sequelize.query(`
+        ALTER TABLE \`subscription_plans\`
+        ADD COLUMN \`billing_cycle\` ENUM('monthly', 'termly', 'session') DEFAULT 'termly' AFTER \`price\`;
+      `);
+      console.log('✅ Successfully added billing_cycle column to subscription_plans.');
+    } catch (err) {
+      console.log('ℹ️ billing_cycle column check processed.');
+    }
+
+    try {
+      await db.sequelize.query(`
+        ALTER TABLE \`subscription_plans\`
+        ADD COLUMN \`discount_amount\` DECIMAL(10,2) DEFAULT 0.00 AFTER \`billing_cycle\`;
+      `);
+      console.log('✅ Successfully added discount_amount column to subscription_plans.');
+    } catch (err) {
+      console.log('ℹ️ discount_amount column check processed.');
+    }
+
+    await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1;');
+  } catch (error) {
+    console.error('⚠️ Plan schema patch error:', error.message);
+  }
+
+  // 7. Ensure school_plans table exists
   console.log('🔄 Verifying school_plans table...');
   try {
     await db.sequelize.query(`
