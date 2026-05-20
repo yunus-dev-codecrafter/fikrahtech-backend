@@ -57,6 +57,52 @@ const syncDatabase = async () => {
     console.error('⚠️ Migration failure:', migrationError.message);
   }
   
+  // 5. Ensure subscription_plans table exists
+  console.log('🔄 Verifying subscription_plans table...');
+  try {
+    await db.sequelize.query(`
+      CREATE TABLE IF NOT EXISTS subscription_plans (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL UNIQUE,
+        price DECIMAL(10, 2) NOT NULL,
+        billing_cycle ENUM('monthly', 'termly', 'session') NOT NULL DEFAULT 'monthly',
+        discount_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+        features TEXT,
+        is_active BOOLEAN NOT NULL DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX(is_active)
+      )
+    `);
+    console.log('✅ subscription_plans table verified/created');
+  } catch (err) {
+    console.error('⚠️ Error creating subscription_plans table:', err.message);
+  }
+
+  // 6. Ensure school_plans table exists
+  console.log('🔄 Verifying school_plans table...');
+  try {
+    await db.sequelize.query(`
+      CREATE TABLE IF NOT EXISTS school_plans (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        plan_id INT NOT NULL,
+        school_id CHAR(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+        start_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+        end_date DATETIME,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_plan_school (plan_id, school_id),
+        INDEX(school_id),
+        INDEX(plan_id),
+        FOREIGN KEY (plan_id) REFERENCES subscription_plans(id) ON DELETE CASCADE ON UPDATE CASCADE,
+        FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE CASCADE ON UPDATE CASCADE
+      )
+    `);
+    console.log('✅ school_plans table verified/created');
+  } catch (err) {
+    console.error('⚠️ Error creating school_plans table:', err.message);
+  }
+  
   return db.sequelize.sync();
 };
 
