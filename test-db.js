@@ -11,7 +11,7 @@ const syncDatabase = async () => {
     } catch (err) {
       console.log('ℹ️ Constraint users_ibfk_1 already dropped or not found.');
     }
-    await db.sequelize.query('ALTER TABLE `users` MODIFY COLUMN `school_id` CHAR(36) NULL;');
+    await db.sequelize.query('ALTER TABLE `users` MODIFY COLUMN `school_id` CHAR(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL;');
     await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1;');
     console.log('✅ Native constraints unlinked and school_id successfully altered.');
   } catch (migrationError) {

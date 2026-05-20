@@ -28,7 +28,7 @@ const syncDatabase = async () => {
     }
 
     // Force alter the underlying database storage row to accept null states natively
-    await db.sequelize.query('ALTER TABLE `users` MODIFY COLUMN `school_id` CHAR(36) NULL;');
+    await db.sequelize.query('ALTER TABLE `users` MODIFY COLUMN `school_id` CHAR(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL;');
     
     // Re-enable relational safety parameters
     await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1;');
