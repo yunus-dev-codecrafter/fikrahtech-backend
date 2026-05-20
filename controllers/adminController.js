@@ -421,35 +421,35 @@ exports.deleteSchool = async (req, res) => {
   }
 };
 
-/**
- * Get all academic sessions for Super Admin
- */
 exports.getAllSessions = async (req, res) => {
   try {
     console.log('🔍 SESSIONS: Fetching school session overview...');
 
-    // Return one row per school showing which session/term it is currently running from school_settings
-    const [sessions] = await sequelize.query(`
-      SELECT
-        s.id          AS school_id,
-        s.name        AS school_name,
-        s.status,
-        COALESCE(ss.currentSession, ss.current_session, s.current_session) AS current_session_name,
-        COALESCE(ss.currentTerm, ss.current_term, s.current_term)       AS current_term_name,
-        COALESCE(ss.currentSession, ss.current_session, s.current_session) AS current_session,
-        COALESCE(ss.currentTerm, ss.current_term, s.current_term)       AS current_term,
-        asess.name    AS active_session_record,
-        asess.id      AS active_session_id
-      FROM schools s
-      LEFT JOIN school_settings ss
-        ON ss.school_id = s.id
-      LEFT JOIN academic_sessions asess
-        ON asess.school_id = s.id
-        AND asess.name = COALESCE(ss.currentSession, ss.current_session, s.current_session)
-      ORDER BY s.name ASC
-    `);
+    // 1. Fetch sessions including the School model with a left join (required: false)
+    const sessionRecords = await AcademicSession.findAll({
+      include: [
+        {
+          model: School,
+          as: 'school',
+          required: false // 👈 CRITICAL: Prevents breaking if user has no school (super_admin)
+        }
+      ]
+    });
 
-    console.log('🔍 SESSIONS: Fetched successfully:', sessions.length, 'schools');
+    // 2. Secure the response mapping loop using optional chaining (?.) and safe fallbacks
+    const sessions = sessionRecords.map(session => ({
+      school_id: session.school?.id || session.school_id || null,
+      school_name: session.school?.name || 'System / Platform Wide',
+      status: session.school?.status || 'Inactive',
+      current_session_name: session.name || 'Not Started',
+      current_term_name: session.school?.current_term || 'Not Set',
+      current_session: session.name || 'Not Started',
+      current_term: session.school?.current_term || 'Not Set',
+      active_session_record: session.name || null,
+      active_session_id: session.id || null
+    }));
+
+    console.log('🔍 SESSIONS: Fetched successfully:', sessions.length, 'sessions');
 
     res.status(200).json({
       message: 'Sessions retrieved successfully',
@@ -459,7 +459,8 @@ exports.getAllSessions = async (req, res) => {
   } catch (error) {
     console.error('🔍 SESSIONS ERROR: Failed to fetch sessions:', error);
     res.status(500).json({
-      message: 'Internal server error'
+      message: 'Internal server error',
+      error: error.message
     });
   }
 };
