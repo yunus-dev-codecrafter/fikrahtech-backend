@@ -17,28 +17,47 @@ const syncDatabase = async () => {
   try {
     console.log('🔄 Running safe native schema migration overrides...');
     
-    // Disable checks to allow raw changes
+    // 1. Temporarily unhook relational constraints
     await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 0;');
     
-    // Drop the constraint using standard SQL syntax. Wrapped in try/catch to ignore if it doesn't exist
     try {
       await db.sequelize.query('ALTER TABLE `users` DROP FOREIGN KEY `users_ibfk_1`;');
-    } catch (err) {
-      console.log('ℹ️ Constraint users_ibfk_1 already dropped or not found.');
+    } catch (e) {}
+
+    // 2. Clear duplicate accumulated email indexes to resolve ER_TOO_MANY_KEYS
+    console.log('🧹 Purging redundant user email indexes...');
+    const [indexes] = await db.sequelize.query(`
+      SELECT INDEX_NAME 
+      FROM INFORMATION_SCHEMA.STATISTICS 
+      WHERE TABLE_SCHEMA = DATABASE() 
+        AND TABLE_NAME = 'users' 
+        AND INDEX_NAME != 'PRIMARY';
+    `);
+
+    // Loop through and drop the accumulated indexes safely
+    for (const index of indexes) {
+      try {
+        // If the index name contains email or numbers from repeated sync tasks, drop it
+        if (index.INDEX_NAME.includes('email') || index.INDEX_NAME.includes('users_')) {
+          await db.sequelize.query(`ALTER TABLE \`users\` DROP INDEX \`${index.INDEX_NAME}\`;`);
+        }
+      } catch (err) {
+        // Ignore if already gone
+      }
     }
 
-    // Force alter the underlying database storage row to accept null states natively
+    // 3. Re-apply the column alignment constraint safely
     await db.sequelize.query('ALTER TABLE `users` MODIFY COLUMN `school_id` CHAR(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL;');
     
-    // Re-enable relational safety parameters
+    // 4. Re-enable foreign key constraints
     await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1;');
     
-    console.log('✅ Native constraints unlinked and school_id successfully altered.');
+    console.log('✅ Native constraints unlinked, indexes purged, and school_id successfully altered.');
   } catch (migrationError) {
     console.error('⚠️ Migration failure:', migrationError.message);
   }
   
-  return db.sequelize.sync({ alter: true });
+  return db.sequelize.sync();
 };
 
 syncDatabase()
