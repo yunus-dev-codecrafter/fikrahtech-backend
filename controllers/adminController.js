@@ -923,22 +923,84 @@ exports.getSchoolSubscriptions = async (req, res) => {
 exports.updatePlan = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, price, billing_cycle, discount_amount, features } = req.body;
+    const { name, price, billing_cycle, interval, discount_amount, features } = req.body;
 
     const plan = await SubscriptionPlan.findByPk(id);
     if (!plan) {
       return res.status(404).json({ success: false, error: 'Plan not found' });
     }
 
-    await plan.update({
-      name,
-      price,
-      billing_cycle,
-      discount_amount,
-      features: typeof features === 'string' ? JSON.parse(features) : features
-    });
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    
+    if (price !== undefined) {
+      updateData.price = price !== null ? parseFloat(price) : 0.00;
+    }
 
-    return res.status(200).json({ success: true, data: plan });
+    const cycle = billing_cycle || interval;
+    if (cycle !== undefined) {
+      let mappedCycle = cycle.toLowerCase();
+      if (mappedCycle === 'yearly') {
+        mappedCycle = 'session';
+      }
+      const validCycles = ['monthly', 'termly', 'session'];
+      if (!validCycles.includes(mappedCycle)) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Billing cycle must be one of: monthly, termly, or session.' 
+        });
+      }
+      updateData.billing_cycle = mappedCycle;
+    }
+
+    if (discount_amount !== undefined) {
+      updateData.discount_amount = discount_amount !== null ? parseFloat(discount_amount) : 0.00;
+    }
+
+    if (features !== undefined) {
+      let finalFeatures = '[]';
+      if (features === null || features === '') {
+        finalFeatures = '[]';
+      } else if (typeof features === 'string') {
+        try {
+          const parsed = JSON.parse(features);
+          finalFeatures = typeof parsed === 'string' ? JSON.stringify([parsed]) : JSON.stringify(parsed);
+        } catch (e) {
+          finalFeatures = JSON.stringify([features]);
+        }
+      } else if (Array.isArray(features)) {
+        finalFeatures = JSON.stringify(features);
+      } else {
+        finalFeatures = JSON.stringify([features]);
+      }
+      updateData.features = finalFeatures;
+    }
+
+    console.log('🔄 PLANS: Updating subscription plan', id, 'with details:', updateData);
+    await plan.update(updateData);
+
+    // Prepare clean response object with parsed features
+    let parsedFeaturesResponse = [];
+    try {
+      parsedFeaturesResponse = typeof plan.features === 'string' ? JSON.parse(plan.features) : (plan.features || []);
+    } catch (e) {
+      parsedFeaturesResponse = [];
+    }
+
+    return res.status(200).json({ 
+      success: true, 
+      data: {
+        id: plan.id,
+        name: plan.name,
+        price: parseFloat(plan.price),
+        billing_cycle: plan.billing_cycle,
+        discount_amount: parseFloat(plan.discount_amount),
+        features: parsedFeaturesResponse,
+        is_active: plan.is_active,
+        created_at: plan.created_at,
+        updated_at: plan.updated_at
+      }
+    });
   } catch (error) {
     console.error('❌ Error updating plan:', error);
     return res.status(500).json({ success: false, error: error.message });
