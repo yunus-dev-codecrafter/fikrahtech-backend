@@ -355,49 +355,36 @@ exports.updateSchool = async (req, res) => {
   try {
     transaction = await sequelize.transaction();
 
-    // Raw SQL Update to ensure all fields are persisted directly to the schools table
-    const updateSchoolQuery = `
-      UPDATE schools 
-      SET name = ?, phone = ?, address = ?, city = ?, state = ?, country = ?, 
-          current_session = ?, current_term = ?, is_blocked = ?, updated_at = NOW()
-      WHERE id = ?
-    `;
-
-    const values = [
-      name || null,
-      phone || null,
-      address || null,
-      city || null,
-      state || null,
-      country || null,
-      current_session || null,
-      current_term || null,
-      is_blocked !== undefined ? (is_blocked ? 1 : 0) : 0,
-      id
-    ];
-
-    const [result] = await sequelize.query(updateSchoolQuery, {
-      replacements: values,
+    // Use Sequelize School.update to handle PostgreSQL Boolean and UUID values correctly
+    const [affectedRows] = await School.update({
+      name: name || null,
+      phone: phone || null,
+      address: address || null,
+      city: city || null,
+      state: state || null,
+      country: country || null,
+      current_session: current_session || null,
+      current_term: current_term || null,
+      is_blocked: is_blocked !== undefined ? !!is_blocked : false
+    }, {
+      where: { id },
       transaction
     });
-
-    // PostgreSQL returns rowCount, MySQL returns affectedRows
-    const affectedRows = result?.rowCount ?? result?.affectedRows ?? 0;
 
     if (affectedRows === 0) {
       await transaction.rollback();
       return res.status(404).json({ success: false, message: 'No school found matching that ID.' });
     }
 
-    // Explicitly update proprietor user email if provided
+    // Explicitly update proprietor user email if provided using User.update
     if (targetEmail) {
-      const updateProprietorQuery = `
-        UPDATE users 
-        SET email = ?, updated_at = NOW() 
-        WHERE school_id = ? AND role = 'proprietor'
-      `;
-      await sequelize.query(updateProprietorQuery, {
-        replacements: [targetEmail, id],
+      await User.update({
+        email: targetEmail
+      }, {
+        where: {
+          school_id: id,
+          role: 'proprietor'
+        },
         transaction
       });
     }
@@ -431,8 +418,12 @@ exports.updateSchool = async (req, res) => {
     });
   } catch (error) {
     if (transaction) await transaction.rollback();
-    console.error('Error updating school:', error);
-    res.status(500).json({ success: false, message: 'Failed to update school.', error: error.message });
+    console.error("DEBUG UPDATE SCHOOL ERROR:", error);
+    return res.status(500).json({ 
+      message: "Failed to update school.", 
+      error: error.message,
+      stack: error.stack 
+    });
   }
 };
 
