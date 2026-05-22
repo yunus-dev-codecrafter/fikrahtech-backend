@@ -99,6 +99,16 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: 'school_id',
       as: 'settings'
     });
+
+    School.hasMany(models.SchoolSubscription, {
+      foreignKey: 'school_id',
+      as: 'subscriptions'
+    });
+
+    School.hasMany(models.SchoolPlan, {
+      foreignKey: 'school_id',
+      as: 'plans'
+    });
   };
 
   return School;

@@ -1,4 +1,4 @@
-const { User, School, Payment, Student, AcademicSession, SchoolSettings, SubscriptionPlan, SchoolPlan, sequelize } = require('../models');
+const { User, School, Payment, Student, AcademicSession, SchoolSettings, SubscriptionPlan, SchoolPlan, SchoolSubscription, sequelize } = require('../models');
 const bcrypt = require('bcryptjs'); // For password hashing (though handled by model hook, good to have for clarity)
 
 /**
@@ -219,33 +219,65 @@ exports.updateSchoolSubscription = async (req, res) => {
  */
 exports.getAllSchools = async (req, res) => {
   try {
-    const [schools] = await sequelize.query(`
-      SELECT
-        s.*,
-        u.email AS proprietor_email,
-        u.id AS proprietor_id,
-        ss.start_date,
-        ss.expiry_date,
-        sp.name  AS plan_name,
-        sp.price AS plan_price
-      FROM schools s
-      LEFT JOIN users u
-        ON u.school_id = s.id AND u.role = 'proprietor'
-      LEFT JOIN school_subscriptions ss
-        ON ss.school_id = s.id
-      LEFT JOIN subscription_plans sp
-        ON sp.id = ss.plan_id
-      ORDER BY s.created_at DESC
-    `);
+    const schools = await School.findAll({
+      include: [
+        {
+          model: User,
+          as: 'users',
+          where: { role: 'proprietor' },
+          required: false,
+          attributes: ['id', 'email']
+        },
+        {
+          model: SchoolSettings,
+          as: 'settings',
+          required: false
+        },
+        {
+          model: SchoolSubscription,
+          as: 'subscriptions',
+          required: false,
+          include: [
+            {
+              model: SubscriptionPlan,
+              as: 'plan',
+              required: false,
+              attributes: ['id', 'name', 'price', 'billing_cycle']
+            }
+          ],
+          attributes: ['id', 'start_date', 'expiry_date', 'status', 'plan_id']
+        }
+      ],
+      order: [['created_at', 'DESC']]
+    });
+
+    // Transform the response to match expected format
+    const transformedSchools = schools.map(school => {
+      const schoolJson = school.toJSON();
+      const proprietor = schoolJson.users && schoolJson.users[0];
+      const latestSubscription = schoolJson.subscriptions && schoolJson.subscriptions[0];
+
+      return {
+        ...schoolJson,
+        proprietor_email: proprietor?.email || null,
+        proprietor_id: proprietor?.id || null,
+        users: undefined, // Remove the users array from response
+        start_date: latestSubscription?.start_date || null,
+        expiry_date: latestSubscription?.expiry_date || null,
+        plan_name: latestSubscription?.plan?.name || null,
+        plan_price: latestSubscription?.plan?.price || null,
+        subscription_status: latestSubscription?.status || null
+      };
+    });
 
     res.status(200).json({
       message: 'Schools retrieved successfully',
-      count: schools.length,
-      schools
+      count: transformedSchools.length,
+      schools: transformedSchools
     });
   } catch (error) {
     console.error('Error fetching schools:', error);
-    res.status(500).json({ message: 'Failed to retrieve schools.' });
+    res.status(500).json({ message: 'Failed to retrieve schools.', error: error.message });
   }
 };
 
@@ -797,11 +829,12 @@ exports.createPlan = async (req, res) => {
 exports.assignSubscriptionToSchool = async (req, res) => {
   try {
     const { schoolId } = req.params;
-    const { planId, plan_id, startDate, start_date, expiryDate, expiry_date } = req.body;
+    const { planId, plan_id, startDate, start_date, expiryDate, expiry_date, status } = req.body;
 
     const final_plan_id = planId || plan_id;
     const final_start_date = startDate || start_date;
     const final_expiry_date = expiryDate || expiry_date;
+    const final_status = status || 'active';
 
     if (!final_plan_id) {
       return res.status(400).json({ message: 'Plan ID (planId or plan_id) is required.' });
@@ -813,76 +846,57 @@ exports.assignSubscriptionToSchool = async (req, res) => {
       return res.status(400).json({ message: 'Expiry date (expiryDate or expiry_date) is required.' });
     }
 
-    const { sequelize } = require('../models');
-
-    // Ensure the school_subscriptions junction table is safely initialized (PostgreSQL syntax):
-    await sequelize.query(`
-      CREATE TABLE IF NOT EXISTS school_subscriptions (
-          id SERIAL PRIMARY KEY,
-          school_id VARCHAR(255) NOT NULL,
-          plan_id INT NOT NULL,
-          start_date DATE NOT NULL,
-          expiry_date DATE NOT NULL,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
     // Verify school exists
-    const [schools] = await sequelize.query('SELECT * FROM schools WHERE id = ?', {
-      replacements: [schoolId]
-    });
-
-    if (schools.length === 0) {
+    const school = await School.findByPk(schoolId);
+    if (!school) {
       return res.status(404).json({ message: 'School not found.' });
     }
 
     // Verify plan exists
-    const [plans] = await sequelize.query('SELECT * FROM subscription_plans WHERE id = ?', {
-      replacements: [final_plan_id]
-    });
-
-    if (plans.length === 0) {
+    const plan = await SubscriptionPlan.findByPk(final_plan_id);
+    if (!plan) {
       return res.status(404).json({ message: 'Subscription plan not found.' });
     }
 
-    // Implement upsert mechanism
-    const [existing] = await sequelize.query('SELECT * FROM school_subscriptions WHERE school_id = ?', {
-      replacements: [schoolId]
+    // Implement upsert: find existing subscription for this school
+    let subscription = await SchoolSubscription.findOne({
+      where: { school_id: schoolId }
     });
 
-    if (existing.length > 0) {
-      await sequelize.query(`
-        UPDATE school_subscriptions 
-        SET plan_id = ?, start_date = ?, expiry_date = ?, updated_at = NOW()
-        WHERE school_id = ?
-      `, {
-        replacements: [final_plan_id, final_start_date, final_expiry_date, schoolId]
+    if (subscription) {
+      // Update existing subscription
+      await subscription.update({
+        plan_id: final_plan_id,
+        start_date: final_start_date,
+        expiry_date: final_expiry_date,
+        status: final_status
       });
     } else {
-      await sequelize.query(`
-        INSERT INTO school_subscriptions (school_id, plan_id, start_date, expiry_date, updated_at)
-        VALUES (?, ?, ?, ?, NOW())
-      `, {
-        replacements: [schoolId, final_plan_id, final_start_date, final_expiry_date]
+      // Create new subscription
+      subscription = await SchoolSubscription.create({
+        school_id: schoolId,
+        plan_id: final_plan_id,
+        start_date: final_start_date,
+        expiry_date: final_expiry_date,
+        status: final_status
       });
     }
 
-    // Update school's subscription expiry
-    await sequelize.query(`
-      UPDATE schools SET subscription_expiry = ?, status = 'active' WHERE id = ?
-    `, {
-      replacements: [final_expiry_date, schoolId]
+    // Update school's subscription expiry and status
+    await school.update({
+      subscription_expiry: final_expiry_date,
+      status: 'active'
     });
 
     res.status(201).json({
       message: 'Subscription assigned to school successfully.',
       subscription: {
-        school_id: schoolId,
-        plan_id: final_plan_id,
-        start_date: final_start_date,
-        expiry_date: final_expiry_date,
-        status: 'active'
+        id: subscription.id,
+        school_id: subscription.school_id,
+        plan_id: subscription.plan_id,
+        start_date: subscription.start_date,
+        expiry_date: subscription.expiry_date,
+        status: subscription.status
       }
     });
   } catch (error) {
@@ -899,24 +913,46 @@ exports.assignSubscriptionToSchool = async (req, res) => {
  */
 exports.getSchoolSubscriptions = async (req, res) => {
   try {
-    const { sequelize } = require('../models');
+    const { SchoolSubscription } = require('../models');
 
-    const [subscriptions] = await sequelize.query(`
-      SELECT ss.*, s.name as school_name, sp.name as plan_name, sp.price as plan_price, sp.billing_cycle as plan_interval
-      FROM school_subscriptions ss
-      LEFT JOIN schools s ON ss.school_id = s.id
-      LEFT JOIN subscription_plans sp ON ss.plan_id = sp.id
-      ORDER BY ss.created_at DESC
-    `);
+    const subscriptions = await SchoolSubscription.findAll({
+      include: [
+        {
+          model: School,
+          as: 'school',
+          attributes: ['id', 'name'],
+          required: false
+        },
+        {
+          model: SubscriptionPlan,
+          as: 'plan',
+          attributes: ['id', 'name', 'price', 'billing_cycle'],
+          required: false
+        }
+      ],
+      order: [['created_at', 'DESC']]
+    });
+
+    // Transform the response to match expected format
+    const transformedSubscriptions = subscriptions.map(sub => {
+      const subJson = sub.toJSON();
+      return {
+        ...subJson,
+        school_name: subJson.school?.name || null,
+        plan_name: subJson.plan?.name || null,
+        plan_price: subJson.plan?.price || null,
+        plan_interval: subJson.plan?.billing_cycle || null
+      };
+    });
 
     res.status(200).json({
       message: 'School subscriptions retrieved successfully',
-      count: subscriptions.length,
-      subscriptions: subscriptions
+      count: transformedSubscriptions.length,
+      subscriptions: transformedSubscriptions
     });
   } catch (error) {
     console.error('Error fetching school subscriptions:', error);
-    res.status(500).json({ message: 'Failed to retrieve school subscriptions.' });
+    res.status(500).json({ message: 'Failed to retrieve school subscriptions.', error: error.message });
   }
 };
 
