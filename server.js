@@ -15,7 +15,7 @@ const PORT = process.env.PORT || 3000;
 // Sync Sequelize models with database
 const syncDatabase = async () => {
   console.log('🔄 Syncing database schema with PostgreSQL...');
-  return db.sequelize.sync({ alter: true });
+  await db.sequelize.sync();
 };
 
 syncDatabase()
