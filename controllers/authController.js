@@ -39,6 +39,22 @@ exports.login = async (req, res) => {
       });
     }
 
+    // ROLE VALIDATION: Proprietor must have a valid school_id
+    if (user.role === 'proprietor' && !user.school_id) {
+      return res.status(403).json({
+        message: 'Proprietor account is not linked to a school. Please contact the administrator.',
+        error: 'PROPRIETOR_NO_SCHOOL'
+      });
+    }
+
+    // ERROR HANDLING: Check if proprietor account is inactive
+    if (user.role === 'proprietor' && user.status === 'inactive') {
+      return res.status(403).json({
+        message: 'Your proprietor account has been deactivated. Please contact the administrator.',
+        error: 'PROPRIETOR_INACTIVE'
+      });
+    }
+
     // Check school status for non-super_admin users
     if (user.role !== 'super_admin' && user.school_id) {
       const [schools] = await sequelize.query('SELECT * FROM schools WHERE id = ?', {
