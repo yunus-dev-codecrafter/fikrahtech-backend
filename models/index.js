@@ -25,20 +25,12 @@ if (useDirectEnv) {
           require: true,
           rejectUnauthorized: false
         }
-      }
+      },
+      define: config.define
     }
   );
 } else if (config.use_env_variable && process.env[config.use_env_variable]) {
-  sequelize = new Sequelize(process.env[config.use_env_variable], {
-    dialect: 'postgres',
-    logging: false,
-    dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false
-      }
-    }
-  });
+  sequelize = new Sequelize(process.env[config.use_env_variable], config);
 } else {
   sequelize = new Sequelize(config.database, config.username, config.password, config);
 }

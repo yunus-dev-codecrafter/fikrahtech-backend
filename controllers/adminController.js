@@ -248,7 +248,7 @@ exports.getAllSchools = async (req, res) => {
           attributes: ['id', 'start_date', 'expiry_date', 'status', 'plan_id']
         }
       ],
-      order: [['created_at', 'DESC']]
+      order: [['createdAt', 'DESC']]
     });
 
     // Transform the response to match expected format
@@ -276,8 +276,12 @@ exports.getAllSchools = async (req, res) => {
       schools: transformedSchools
     });
   } catch (error) {
-    console.error('Error fetching schools:', error);
-    res.status(500).json({ message: 'Failed to retrieve schools.', error: error.message });
+    console.error("DEBUG FETCH SCHOOLS ERROR:", error);
+    return res.status(500).json({ 
+      message: "Failed to fetch schools.", 
+      error: error.message,
+      stack: error.stack 
+    });
   }
 };
 
