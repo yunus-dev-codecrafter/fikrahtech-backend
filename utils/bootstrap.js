@@ -18,9 +18,8 @@ async function bootstrapSystem() {
 
         // 1. Ensure Main Academy School exists (atomic operation)
         const [school, schoolCreated] = await School.findOrCreate({
-            where: { id: 1 },
+            where: { name: 'FikrahTech Main Academy' },
             defaults: {
-                id: 1,
                 name: 'FikrahTech Main Academy',
                 is_blocked: false,
                 current_session: '2024/2025',
