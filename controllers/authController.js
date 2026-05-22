@@ -22,11 +22,13 @@ exports.login = async (req, res) => {
     }
 
     const user = rows[0];
+    console.log('DEBUG LOGIN - User found:', user ? { email: user.email, role: user.role, school_id: user.school_id } : 'None');
 
     // Immediate user existence check to prevent 500 crash
     if (!user) {
       return res.status(401).json({ 
-        message: 'Invalid email or password' 
+        message: 'Invalid email or password',
+        debugReason: 'USER_NOT_FOUND'
       });
     }
 
@@ -35,16 +37,18 @@ exports.login = async (req, res) => {
       console.log(`❌ ROLE MISMATCH: User ${email} attempted login as ${requestedRole} but is registered as ${user.role}`);
       return res.status(401).json({ 
         message: 'Unauthorized: Role mismatch',
-        debug: 'ROLE_MISMATCH'
+        debugReason: 'ROLE_MISMATCH'
       });
     }
 
     // Use bcrypt.compare to verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log('DEBUG LOGIN - Password match result:', isPasswordValid);
     
     if (!isPasswordValid) {
       return res.status(401).json({ 
-        message: 'Unauthorized' 
+        message: 'Unauthorized',
+        debugReason: 'PASSWORD_MISMATCH'
       });
     }
 
@@ -134,7 +138,8 @@ exports.login = async (req, res) => {
     res.status(500).json({ 
       message: 'Login failed due to server error',
       error: error.message, 
-      stack: error.stack 
+      stack: error.stack,
+      debugReason: 'Review backend logs for password match or role configuration errors'
     });
   }
 };
