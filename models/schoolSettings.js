@@ -19,24 +19,28 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false,
       defaultValue: '2024/2025',
-      comment: 'Current academic session (e.g., "2024/2025")'
+      comment: 'Current academic session (e.g., "2024/2025")',
+      field: 'currentSession'
     },
     current_term: {
       type: DataTypes.STRING,
       allowNull: false,
       defaultValue: 'First Term',
-      comment: 'Current academic term (e.g., "First Term", "Second Term", "Third Term")'
+      comment: 'Current academic term (e.g., "First Term", "Second Term", "Third Term")',
+      field: 'currentTerm'
     },
     max_students: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      comment: 'Maximum number of students allowed'
+      comment: 'Maximum number of students allowed',
+      field: 'maxStudents'
     },
     grading_system: {
       type: DataTypes.STRING,
       allowNull: false,
       defaultValue: '5.0',
-      comment: 'Grading system used by the school'
+      comment: 'Grading system used by the school',
+      field: 'gradingSystem'
     },
     currency: {
       type: DataTypes.STRING,

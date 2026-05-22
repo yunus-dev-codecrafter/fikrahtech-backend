@@ -34,6 +34,7 @@ exports.registerSchool = async (req, res) => {
         trial_period_days: 30
       }, { transaction });
       console.log('🔍 REGISTRATION: School created with ID:', newSchool.id);
+      const schoolId = (newSchool && (typeof newSchool.id === 'string' ? newSchool.id : (newSchool.get ? newSchool.get('id') : String(newSchool.id))));
     } catch (error) {
       console.error('🔍 REGISTRATION ERROR - Step 1 (School creation):', error.message);
       throw error;
@@ -45,10 +46,10 @@ exports.registerSchool = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // 3. Create the first Proprietor User with hashed password
-    console.log('🔍 REGISTRATION: Creating user with email:', email, 'for school:', newSchool.id);
+    console.log('🔍 REGISTRATION: Creating user with email:', email, 'for school:', schoolId);
     try {
       await User.create({
-        school_id: newSchool.id,
+        school_id: schoolId,
         email: email,
         password: hashedPassword,
         role: 'proprietor'
@@ -63,7 +64,7 @@ exports.registerSchool = async (req, res) => {
     console.log('🔍 REGISTRATION: Creating academic session...');
     try {
       await AcademicSession.create({
-        school_id: newSchool.id,
+        school_id: schoolId,
         name: current_session,
         is_current: true
       }, { transaction });
@@ -78,7 +79,7 @@ exports.registerSchool = async (req, res) => {
     console.log('🔍 REGISTRATION: Creating school settings...');
     try {
       await SchoolSettings.create({
-        school_id: newSchool.id,
+        school_id: schoolId,
         current_session: current_session,
         current_term: current_term,
         currency: 'NGN',
@@ -566,8 +567,8 @@ exports.getSettings = async (req, res) => {
           type: 'school',
           schoolName: school.name,
           schoolLogo: school.settings?.schoolLogo || null,
-          currentSession: school.settings?.currentSession || '2023/2024',
-          currentTerm: school.settings?.currentTerm || 'First Term'
+          currentSession: school.settings?.current_session || '2023/2024',
+          currentTerm: school.settings?.current_term || 'First Term'
         }
       });
     } else {
@@ -612,14 +613,14 @@ exports.updateSchoolSettings = async (req, res) => {
     if (!settings) {
       settings = await SchoolSettings.create({
         school_id: id,
-        currentSession: currentSession || '2023/2024',
-        currentTerm: currentTerm || 'First Term'
+        current_session: currentSession || '2023/2024',
+        current_term: currentTerm || 'First Term'
       });
     } else {
       // Update existing settings
       await settings.update({
-        currentSession: currentSession || settings.currentSession,
-        currentTerm: currentTerm || settings.currentTerm
+        current_session: currentSession || settings.current_session,
+        current_term: currentTerm || settings.current_term
       });
     }
 
@@ -627,8 +628,8 @@ exports.updateSchoolSettings = async (req, res) => {
       message: 'School settings updated successfully',
       settings: {
         schoolId: id,
-        currentSession: settings.currentSession,
-        currentTerm: settings.currentTerm
+        currentSession: settings.current_session,
+        currentTerm: settings.current_term
       }
     });
   } catch (error) {

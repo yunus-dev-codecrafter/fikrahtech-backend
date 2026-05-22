@@ -33,8 +33,8 @@ exports.getSchoolProfile = async (req, res) => {
     // Get school settings (or create default if not exists)
     const settings = school.settings || await SchoolSettings.create({
       school_id: schoolId,
-      currentSession: '2023/2024',
-      currentTerm: 'First Term'
+      current_session: '2023/2024',
+      current_term: 'First Term'
     });
 
     res.status(200).json({
@@ -46,8 +46,8 @@ exports.getSchoolProfile = async (req, res) => {
         subscriptionExpiry: school.subscriptionExpiry, // Include for Proprietor
         trialPeriodDays: school.trialPeriodDays,
         settings: {
-          currentSession: settings.currentSession,
-          currentTerm: settings.currentTerm
+          currentSession: settings.current_session,
+          currentTerm: settings.current_term
         }
       }
     });
@@ -93,8 +93,8 @@ exports.getPublicSchoolInfo = async (req, res) => {
     // Get school settings (or create default if not exists)
     const settings = school.settings || await SchoolSettings.create({
       school_id: schoolId,
-      currentSession: '2023/2024',
-      currentTerm: 'First Term'
+      current_session: '2023/2024',
+      current_term: 'First Term'
     });
 
     res.status(200).json({
@@ -105,8 +105,8 @@ exports.getPublicSchoolInfo = async (req, res) => {
         status: school.status,
         // Privacy: Only show Session/Term, NOT subscription expiry
         settings: {
-          currentSession: settings.currentSession,
-          currentTerm: settings.currentTerm
+          currentSession: settings.current_session,
+          currentTerm: settings.current_term
         }
       }
     });
