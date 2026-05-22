@@ -4,7 +4,7 @@ const { bootstrapSystem } = require('./utils/bootstrap');
 
 const syncDatabase = async () => {
   console.log('🔄 Syncing database schema for PostgreSQL...');
-  return db.sequelize.sync({ alter: true });
+  return db.sequelize.sync();
 };
 
 syncDatabase()
