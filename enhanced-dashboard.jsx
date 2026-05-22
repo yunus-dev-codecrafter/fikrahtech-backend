@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { User, Bell, ChevronDown, LogOut, Settings, User as UserIcon } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
 // JWT Token validation helper
@@ -47,6 +48,19 @@ const Dashboard = () => {
     current_session: '2026/2027',
     current_term: 'First Term'
   });
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [userData, setUserData] = useState(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        setUserData(JSON.parse(storedUser));
+      } catch (e) {
+        console.error('Error parsing user data', e);
+      }
+    }
+  }, []);
 
   // Logout function
   const handleLogout = () => {
@@ -184,11 +198,59 @@ const Dashboard = () => {
     <div className="dashboard-container">
       <Toaster position="top-right" />
       
-      <div className="dashboard-header">
-        <h2>Super Admin Dashboard</h2>
-        <button onClick={handleLogout} className="logout-button">
-          Logout
-        </button>
+      <div className="dashboard-navbar">
+        <div className="navbar-left">
+          <h2>Super Admin Dashboard</h2>
+        </div>
+        
+        <div className="navbar-right">
+          {/* Notification Bell */}
+          <div className="notification-bell">
+            <Bell size={20} />
+            <span className="notification-badge">0</span>
+          </div>
+
+          {/* User Profile Dropdown */}
+          <div className="user-profile-dropdown">
+            <button 
+              className="profile-trigger"
+              onClick={() => setShowUserDropdown(!showUserDropdown)}
+            >
+              <div className="avatar-circle">
+                {userData?.name ? userData.name.charAt(0).toUpperCase() : <UserIcon size={18} />}
+              </div>
+              <div className="profile-info-brief">
+                <span className="profile-name">{userData?.name || 'Admin'}</span>
+                <ChevronDown size={14} className={showUserDropdown ? 'rotate-180' : ''} />
+              </div>
+            </button>
+
+            {showUserDropdown && (
+              <div className="dropdown-menu">
+                <div className="dropdown-header">
+                  <p className="user-email">{userData?.email}</p>
+                  <span className="role-badge">
+                    {userData?.role === 'super_admin' ? 'Super Admin' : 'Proprietor'}
+                  </span>
+                </div>
+                <div className="dropdown-divider"></div>
+                <Link to="/profile" className="dropdown-item">
+                  <User size={16} />
+                  <span>My Profile</span>
+                </Link>
+                <Link to="/settings" className="dropdown-item">
+                  <Settings size={16} />
+                  <span>Settings</span>
+                </Link>
+                <div className="dropdown-divider"></div>
+                <button onClick={handleLogout} className="dropdown-item logout">
+                  <LogOut size={16} />
+                  <span>Logout</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
       
       <div className="stats-grid">
@@ -352,25 +414,157 @@ const Dashboard = () => {
           margin: 0 auto;
         }
 
-        .dashboard-header {
+        .dashboard-navbar {
           display: flex;
           justify-content: space-between;
           align-items: center;
           margin-bottom: 30px;
+          padding: 10px 0;
+          border-bottom: 1px solid #eee;
         }
 
-        .logout-button {
-          padding: 8px 16px;
+        .navbar-right {
+          display: flex;
+          align-items: center;
+          gap: 20px;
+        }
+
+        .notification-bell {
+          position: relative;
+          color: #666;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+        }
+
+        .notification-badge {
+          position: absolute;
+          top: -5px;
+          right: -5px;
           background: #dc3545;
           color: white;
+          font-size: 10px;
+          padding: 2px 5px;
+          border-radius: 10px;
+          min-width: 15px;
+          text-align: center;
+        }
+
+        .user-profile-dropdown {
+          position: relative;
+        }
+
+        .profile-trigger {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          background: none;
           border: none;
-          border-radius: 5px;
           cursor: pointer;
+          padding: 5px;
+          border-radius: 8px;
+          transition: background 0.2s;
+        }
+
+        .profile-trigger:hover {
+          background: #f8f9fa;
+        }
+
+        .avatar-circle {
+          width: 32px;
+          height: 32px;
+          background: #007bff;
+          color: white;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: bold;
           font-size: 14px;
         }
 
-        .logout-button:hover {
-          background: #c82333;
+        .profile-info-brief {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+        }
+
+        .profile-name {
+          font-size: 14px;
+          font-weight: 500;
+          color: #333;
+        }
+
+        .dropdown-menu {
+          position: absolute;
+          top: calc(100% + 10px);
+          right: 0;
+          background: white;
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          width: 220px;
+          z-index: 1000;
+          padding: 10px 0;
+          border: 1px solid #eee;
+        }
+
+        .dropdown-header {
+          padding: 10px 15px;
+        }
+
+        .user-email {
+          font-size: 12px;
+          color: #666;
+          margin: 0 0 5px 0;
+          word-break: break-all;
+        }
+
+        .role-badge {
+          display: inline-block;
+          background: #e7f3ff;
+          color: #007bff;
+          font-size: 11px;
+          font-weight: 600;
+          padding: 2px 8px;
+          border-radius: 12px;
+        }
+
+        .dropdown-divider {
+          height: 1px;
+          background: #eee;
+          margin: 10px 0;
+        }
+
+        .dropdown-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 15px;
+          color: #333;
+          text-decoration: none;
+          font-size: 14px;
+          transition: background 0.2s;
+          width: 100%;
+          text-align: left;
+          border: none;
+          background: none;
+          cursor: pointer;
+        }
+
+        .dropdown-item:hover {
+          background: #f8f9fa;
+        }
+
+        .dropdown-item.logout {
+          color: #dc3545;
+        }
+
+        .dropdown-item.logout:hover {
+          background: #fff5f5;
+        }
+
+        .rotate-180 {
+          transform: rotate(180deg);
         }
 
         .dashboard-loading, .dashboard-error {

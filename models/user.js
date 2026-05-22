@@ -32,6 +32,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.ENUM('super_admin', 'proprietor'),
       allowNull: false
     },
+    name: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
     needs_password_reset: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,

@@ -95,6 +95,7 @@ exports.login = async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
+        name: user.name,
         role: user.role,
         school_id: user.school_id,
         needs_password_reset: !!user.needs_password_reset
@@ -143,6 +144,7 @@ exports.updateForcedPassword = async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
+        name: user.name,
         role: user.role,
         school_id: user.school_id,
         needs_password_reset: false

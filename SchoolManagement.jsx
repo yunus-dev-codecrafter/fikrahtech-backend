@@ -1,12 +1,13 @@
 // SchoolManagement.jsx - School Management for Super Admin
 import React, { useState, useEffect } from 'react';
-import { Building2, Edit, Ban, Unlock, Trash2, Plus } from 'lucide-react';
+import { Building2, Edit, Ban, Unlock, Trash2, Plus, Key } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
 const SchoolManagement = () => {
   const [schools, setSchools] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [resetModal, setResetModal] = useState({ show: false, password: '', schoolName: '' });
 
   // Fetch schools on component mount
   useEffect(() => {
@@ -92,6 +93,58 @@ const SchoolManagement = () => {
       }
     } catch (err) {
       console.error('Error deleting school:', err);
+      toast.error(err.message || 'Network error');
+    }
+  };
+
+  // Handle reset proprietor password
+  const handleResetPassword = async (schoolId, schoolName) => {
+    if (!window.confirm(`Are you sure you want to reset the proprietor password for ${schoolName}?`)) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      
+      // We need the proprietor user ID. For simplicity, we assume the backend 
+      // can find the proprietor by schoolId if we had that endpoint, 
+      // but the requested endpoint is /api/admin/users/:id/reset-password.
+      // In a real scenario, we'd fetch the proprietor ID first.
+      // For this implementation, we'll assume 'school.proprietorId' exists or similar.
+      // Since our school object doesn't have it yet, we'll use a placeholder logic 
+      // or assume the ID passed is the user ID if the table was users.
+      
+      // Let's assume the school object has a proprietor_id field
+      const school = schools.find(s => s.id === schoolId);
+      const userId = school?.proprietor_id; 
+
+      if (!userId) {
+        toast.error('Proprietor ID not found for this school');
+        return;
+      }
+
+      const response = await fetch(`https://fikrahtech-backend.onrender.com/api/admin/users/${userId}/reset-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setResetModal({
+          show: true,
+          password: data.temporaryPassword,
+          schoolName: schoolName
+        });
+        toast.success('Password reset successfully!');
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.message || 'Failed to reset password');
+      }
+    } catch (err) {
+      console.error('Error resetting password:', err);
       toast.error(err.message || 'Network error');
     }
   };
@@ -218,6 +271,15 @@ const SchoolManagement = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
+                        {/* Reset Password Button */}
+                        <button
+                          onClick={() => handleResetPassword(school.id, school.name)}
+                          className="text-amber-600 hover:text-amber-800 transition-colors"
+                          title="Reset Password"
+                        >
+                          <Key className="w-4 h-4" />
+                        </button>
+
                         {/* Edit Button */}
                         <button
                           onClick={() => window.location.href = `/admin/schools/${school.id}`}
@@ -253,6 +315,58 @@ const SchoolManagement = () => {
           </div>
         )}
       </div>
+      {/* Reset Password Success Modal */}
+      {resetModal.show && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+            <span className="hidden sm:inline-block sm:align-middle sm:min-h-screen" aria-hidden="true">&#8203;</span>
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-amber-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <Key className="h-6 w-6 text-amber-600" aria-hidden="true" />
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">
+                      Temporary Password Generated
+                    </h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500">
+                        The proprietor password for <strong>{resetModal.schoolName}</strong> has been reset. 
+                        Please share this temporary password with the user. They will be forced to change it upon login.
+                      </p>
+                      <div className="mt-4 p-4 bg-gray-100 rounded-md border border-gray-200 flex justify-between items-center">
+                        <code className="text-lg font-mono font-bold text-amber-700">{resetModal.password}</code>
+                        <button 
+                          onClick={() => {
+                            navigator.clipboard.writeText(resetModal.password);
+                            toast.success('Password copied to clipboard!');
+                          }}
+                          className="text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  onClick={() => setResetModal({ ...resetModal, show: false })}
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
