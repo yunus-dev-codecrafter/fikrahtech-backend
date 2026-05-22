@@ -80,8 +80,8 @@ const verifyToken = async (req, res, next) => {
 const isAdmin = async (req, res, next) => {
   // First verify token
   verifyToken(req, res, () => {
-    // Check if user has Super Admin role
-    if (req.user && req.user.role !== 'super_admin') {
+    // Check if user has Super Admin role (case-insensitive)
+    if (req.user && req.user.role.toLowerCase() !== 'super_admin') {
       console.log('❌ ADMIN ACCESS DENIED:', {
         userId: req.user.id,
         role: req.user.role,

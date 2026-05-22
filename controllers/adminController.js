@@ -41,18 +41,13 @@ exports.registerSchool = async (req, res) => {
       throw error;
     }
 
-    // 2. Hash the password manually before creating user
-    const bcrypt = require('bcryptjs');
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // 3. Create the first Proprietor User with hashed password
+    // 3. Create the first Proprietor User - The User model hook will handle hashing the password
     console.log('🔍 REGISTRATION: Creating user with email:', email, 'for school:', schoolId);
     try {
       await User.create({
         school_id: schoolId,
         email: email,
-        password: hashedPassword,
+        password: password, // Pass plain password, let model hook hash it
         role: 'proprietor'
       }, { transaction });
       console.log('🔍 REGISTRATION: User created successfully');
@@ -560,7 +555,7 @@ exports.getAdminStats = async (req, res) => {
  */
 exports.getSettings = async (req, res) => {
   try {
-    const { role } = req.user;
+    const role = req.user.role.toLowerCase();
 
     if (role === 'super_admin') {
       // Super Admin sees System Settings

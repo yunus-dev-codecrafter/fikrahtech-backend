@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 console.log('✅ Auth logic synced with bcryptjs');
 
 exports.login = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, role: requestedRole } = req.body;
 
   try {
     // Raw query fallback to check user existence
@@ -30,6 +30,15 @@ exports.login = async (req, res) => {
       });
     }
 
+    // ROLE VALIDATION: If a specific role is requested from frontend, ensure it matches database
+    if (requestedRole && user.role.toLowerCase() !== requestedRole.toLowerCase()) {
+      console.log(`❌ ROLE MISMATCH: User ${email} attempted login as ${requestedRole} but is registered as ${user.role}`);
+      return res.status(401).json({ 
+        message: 'Unauthorized: Role mismatch',
+        debug: 'ROLE_MISMATCH'
+      });
+    }
+
     // Use bcrypt.compare to verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     
@@ -40,7 +49,8 @@ exports.login = async (req, res) => {
     }
 
     // ROLE VALIDATION: Proprietor must have a valid school_id
-    if (user.role === 'proprietor' && !user.school_id) {
+    const userRole = user.role.toLowerCase();
+    if (userRole === 'proprietor' && !user.school_id) {
       return res.status(403).json({
         message: 'Proprietor account is not linked to a school. Please contact the administrator.',
         error: 'PROPRIETOR_NO_SCHOOL'
@@ -48,7 +58,7 @@ exports.login = async (req, res) => {
     }
 
     // ERROR HANDLING: Check if proprietor account is inactive
-    if (user.role === 'proprietor' && user.status === 'inactive') {
+    if (userRole === 'proprietor' && user.status === 'inactive') {
       return res.status(403).json({
         message: 'Your proprietor account has been deactivated. Please contact the administrator.',
         error: 'PROPRIETOR_INACTIVE'
@@ -56,7 +66,7 @@ exports.login = async (req, res) => {
     }
 
     // Check school status for non-super_admin users
-    if (user.role !== 'super_admin' && user.school_id) {
+    if (userRole !== 'super_admin' && user.school_id) {
       const [schools] = await sequelize.query('SELECT * FROM schools WHERE id = ?', {
         replacements: [user.school_id]
       });
