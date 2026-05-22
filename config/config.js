@@ -9,7 +9,7 @@ function parseDatabaseUrl(url) {
     console.log('🔍 DEBUG: Parsing DATABASE_URL:', url);
     const config = {
       host: urlObj.hostname,
-      port: urlObj.port || 3306,
+      port: urlObj.port || 5432,
       database: urlObj.pathname.substring(1), // Remove leading slash
       username: urlObj.username,
       password: urlObj.password,
@@ -58,7 +58,7 @@ console.log('Username:', dbConfig.username);
 module.exports = {
   development: {
     ...dbConfig,
-    dialect: 'mysql',
+    dialect: 'postgres',
     logging: process.env.NODE_ENV === 'development',
     dialectOptions: {
       ssl: dbConfig.ssl
@@ -70,7 +70,7 @@ module.exports = {
   },
   production: {
     ...dbConfig,
-    dialect: 'mysql',
+    dialect: 'postgres',
     logging: false,
     dialectOptions: {
       ssl: dbConfig.ssl

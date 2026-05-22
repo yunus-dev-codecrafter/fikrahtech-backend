@@ -73,4 +73,7 @@ router.get('/settings', adminController.getSettings);
 // Route for Super Admin to update school settings
 router.put('/schools/:id/settings', adminController.updateSchoolSettings);
 
+// Route for Super Admin to reset proprietor password
+router.post('/users/:id/reset-password', adminController.resetUserPassword);
+
 module.exports = router;

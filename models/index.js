@@ -8,8 +8,17 @@ const config = require(__dirname + '/../config/config.js')[env];
 const db = {};
 
 let sequelize;
-if (config.use_env_variable) {
-  sequelize = new Sequelize(process.env[config.use_env_variable], config);
+if (config.use_env_variable && process.env[config.use_env_variable]) {
+  sequelize = new Sequelize(process.env[config.use_env_variable], {
+    dialect: 'postgres',
+    logging: false,
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      }
+    }
+  });
 } else {
   sequelize = new Sequelize(config.database, config.username, config.password, config);
 }

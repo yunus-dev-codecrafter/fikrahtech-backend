@@ -221,6 +221,7 @@ exports.getAllSchools = async (req, res) => {
       SELECT
         s.*,
         u.email AS proprietor_email,
+        u.id AS proprietor_id,
         ss.start_date,
         ss.expiry_date,
         sp.name  AS plan_name,
@@ -274,6 +275,7 @@ exports.getSchoolById = async (req, res) => {
 
     const schoolJson = school.toJSON();
     schoolJson.proprietor_email = schoolJson.users?.[0]?.email || null;
+    schoolJson.proprietor_id = schoolJson.users?.[0]?.id || null;
     delete schoolJson.users;
 
     res.status(200).json({
@@ -1024,5 +1026,39 @@ exports.deletePlan = async (req, res) => {
   } catch (error) {
     console.error('❌ Error deleting plan:', error);
     return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Reset User Password to a temporary fallback password and force rotation (Super Admin only)
+ */
+exports.resetUserPassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    // Generate a human-readable temporary password: FikrahTemp! + 4 random digits
+    const randomDigits = Math.floor(1000 + Math.random() * 9000);
+    const tempPassword = `FikrahTemp!${randomDigits}`;
+
+    // Update targeted user's password and needs_password_reset
+    // User model hooks will hash it
+    user.password = tempPassword;
+    user.needs_password_reset = true;
+    await user.save();
+
+    console.log(`🔍 ADMIN OVERRIDE: Reset password for user ${user.email} to temporary password: ${tempPassword}`);
+
+    return res.status(200).json({
+      message: 'Password reset successfully.',
+      temporaryPassword: tempPassword
+    });
+  } catch (error) {
+    console.error('❌ Error resetting password:', error);
+    return res.status(500).json({ message: 'Failed to reset password due to server error.', error: error.message });
   }
 };

@@ -1,4 +1,4 @@
-const { sequelize } = require('../models');
+const { sequelize, User } = require('../models');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -96,7 +96,8 @@ exports.login = async (req, res) => {
         id: user.id,
         email: user.email,
         role: user.role,
-        school_id: user.school_id
+        school_id: user.school_id,
+        needs_password_reset: !!user.needs_password_reset
       }
     });
     
@@ -107,6 +108,51 @@ exports.login = async (req, res) => {
       message: 'Login failed due to server error',
       error: error.message, 
       stack: error.stack 
+    });
+  }
+};
+
+exports.updateForcedPassword = async (req, res) => {
+  const { newPassword } = req.body;
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ message: 'Authentication required.' });
+  }
+
+  if (!newPassword) {
+    return res.status(400).json({ message: 'New password is required.' });
+  }
+
+  try {
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    // Update password and toggle needs_password_reset back to false
+    // User model hooks will hash the password
+    user.password = newPassword;
+    user.needs_password_reset = false;
+    await user.save();
+
+    console.log(`🔍 PASSWORD ROTATION: User ${user.email} rotated their password successfully.`);
+
+    return res.status(200).json({
+      message: 'Password updated successfully.',
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        school_id: user.school_id,
+        needs_password_reset: false
+      }
+    });
+  } catch (error) {
+    console.error('Error updating forced password:', error);
+    return res.status(500).json({ 
+      message: 'Failed to update password due to server error.', 
+      error: error.message 
     });
   }
 };

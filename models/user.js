@@ -31,6 +31,11 @@ module.exports = (sequelize, DataTypes) => {
     role: {
       type: DataTypes.ENUM('super_admin', 'proprietor'),
       allowNull: false
+    },
+    needs_password_reset: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      allowNull: false
     }
   }, {
     tableName: 'users', // Explicitly define table name
