@@ -26,6 +26,7 @@ exports.registerSchool = async (req, res) => {
     // 1. Create the School entry
     console.log('🔍 REGISTRATION: Creating school with name:', name);
     let newSchool;
+    let schoolId;
     try {
       newSchool = await School.create({
         name: name,
@@ -34,7 +35,7 @@ exports.registerSchool = async (req, res) => {
         trial_period_days: 30
       }, { transaction });
       console.log('🔍 REGISTRATION: School created with ID:', newSchool.id);
-      const schoolId = (newSchool && (typeof newSchool.id === 'string' ? newSchool.id : (newSchool.get ? newSchool.get('id') : String(newSchool.id))));
+      schoolId = (newSchool && (typeof newSchool.id === 'string' ? newSchool.id : (newSchool.get ? newSchool.get('id') : String(newSchool.id))));
     } catch (error) {
       console.error('🔍 REGISTRATION ERROR - Step 1 (School creation):', error.message);
       throw error;
