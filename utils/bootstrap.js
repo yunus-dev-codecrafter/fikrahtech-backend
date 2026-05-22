@@ -1,4 +1,4 @@
-const { User, School } = require('../models');
+const { User, School, SubscriptionPlan } = require('../models');
 const bcrypt = require('bcryptjs');
 
 /**
@@ -63,6 +63,17 @@ async function bootstrapSystem() {
         console.log('🎯 Default Login Credentials:');
         console.log(`   Email: ${adminCredentials.email}`);
         console.log(`   Password: ${adminCredentials.plainPassword}`);
+
+        // 3. Seed default subscription plans if table is empty
+        const planCount = await SubscriptionPlan.count();
+        if (planCount === 0) {
+            await SubscriptionPlan.bulkCreate([
+                { name: 'Basic', price: 5000.00, billing_cycle: 'termly', discount_amount: 0.00, features: JSON.stringify(['Up to 200 students', 'Basic reports']), is_active: true },
+                { name: 'Pro', price: 12000.00, billing_cycle: 'termly', discount_amount: 500.00, features: JSON.stringify(['Up to 500 students', 'Advanced reports', 'SMS notifications']), is_active: true },
+                { name: 'Enterprise', price: 25000.00, billing_cycle: 'session', discount_amount: 2000.00, features: JSON.stringify(['Unlimited students', 'Full feature access', 'Priority support']), is_active: true }
+            ]);
+            console.log('✅ Default subscription plans seeded.');
+        }
 
         console.log('🎉 FikrahTech System Bootstrap Complete!');
         return {

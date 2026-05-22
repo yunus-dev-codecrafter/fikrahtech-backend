@@ -343,9 +343,8 @@ exports.updateSchool = async (req, res) => {
       transaction
     });
 
-    const affectedRows = result && result.affectedRows !== undefined 
-      ? result.affectedRows 
-      : (result && result.changedRows !== undefined ? result.changedRows : 0);
+    // PostgreSQL returns rowCount, MySQL returns affectedRows
+    const affectedRows = result?.rowCount ?? result?.affectedRows ?? 0;
 
     if (affectedRows === 0) {
       await transaction.rollback();
@@ -814,16 +813,16 @@ exports.assignSubscriptionToSchool = async (req, res) => {
 
     const { sequelize } = require('../models');
 
-    // Ensure the school_subscriptions junction table is safely initialized:
+    // Ensure the school_subscriptions junction table is safely initialized (PostgreSQL syntax):
     await sequelize.query(`
       CREATE TABLE IF NOT EXISTS school_subscriptions (
-          id INT AUTO_INCREMENT PRIMARY KEY,
+          id SERIAL PRIMARY KEY,
           school_id VARCHAR(255) NOT NULL,
           plan_id INT NOT NULL,
           start_date DATE NOT NULL,
           expiry_date DATE NOT NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
