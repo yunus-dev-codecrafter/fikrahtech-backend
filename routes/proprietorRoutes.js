@@ -5,11 +5,22 @@ const { authenticateToken } = require('../middleware/auth');
 
 // Role check middleware
 const isProprietor = (req, res, next) => {
-  if (req.user && req.user.role.toLowerCase() === 'proprietor') {
-    next();
-  } else {
-    res.status(403).json({ message: 'Access denied. Proprietor role required.' });
+  if (!req.user) {
+    return res.status(401).json({ message: 'Authentication required.' });
   }
+
+  const role = req.user.role.toLowerCase();
+  
+  if (role === 'proprietor') {
+    return next();
+  }
+
+  // Gracefully handle other roles (especially super_admin)
+  const roleDisplay = role.replace('_', ' ');
+  return res.status(403).json({ 
+    message: `Access denied. You are logged in as a ${roleDisplay}, but this section requires a Proprietor account.`,
+    error: 'ROLE_INSUFFICIENT_PERMISSIONS'
+  });
 };
 
 // All proprietor routes require authentication and proprietor role

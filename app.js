@@ -12,7 +12,7 @@ app.use(cors({
     'http://localhost:5173' // Common Vite dev port
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-section-id'],
   credentials: true // Allow cookies if needed for authentication
 }));
 
