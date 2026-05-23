@@ -17,7 +17,14 @@ router.use(authenticateToken);
 router.use(isProprietor);
 
 // Student & Parent Management
-router.post('/students/register', proprietorController.registerStudent);
+router.post('/students', proprietorController.registerStudent);
+
+// Staff Management
+router.post('/staff', proprietorController.createStaff);
+
+// Classes Management
+router.get('/classes', proprietorController.getClasses);
+router.post('/classes', proprietorController.createClass);
 
 // Dashboard & Sections
 router.get('/dashboard/stats', proprietorController.getDashboardStats);
