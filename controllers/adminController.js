@@ -1,4 +1,4 @@
-const { User, School, Payment, Student, AcademicSession, SchoolSettings, SubscriptionPlan, SchoolPlan, SchoolSubscription, sequelize } = require('../models');
+const { User, School, Payment, Student, AcademicSession, SchoolSettings, SubscriptionPlan, SchoolPlan, SchoolSubscription, RevenueLedger, sequelize } = require('../models');
 const bcrypt = require('bcryptjs'); // For password hashing (though handled by model hook, good to have for clarity)
 
 /**
@@ -424,25 +424,73 @@ exports.updateSchool = async (req, res) => {
 
 /**
  * Delete school (Super Admin only)
+ * Includes dependent deletion of all linked records to avoid foreign key constraints
  */
 exports.deleteSchool = async (req, res) => {
-  try {
-    const { id } = req.params;
+  const { id } = req.params;
+  let transaction;
 
+  try {
     const school = await School.findByPk(id);
 
     if (!school) {
       return res.status(404).json({ message: 'School not found.' });
     }
 
-    await school.destroy();
+    // Start transaction for atomic deletion
+    transaction = await sequelize.transaction();
+
+    console.log(`🗑️ DELETING SCHOOL: ${school.name} (${id})`);
+
+    // 1. Delete associated users
+    await User.destroy({ where: { school_id: id }, transaction });
+    console.log(' - Deleted associated users');
+
+    // 2. Delete associated school settings
+    await SchoolSettings.destroy({ where: { school_id: id }, transaction });
+    console.log(' - Deleted school settings');
+
+    // 3. Delete associated academic sessions
+    await AcademicSession.destroy({ where: { school_id: id }, transaction });
+    console.log(' - Deleted academic sessions');
+
+    // 4. Delete associated payments (must be before students if there are constraints)
+    await Payment.destroy({ where: { school_id: id }, transaction });
+    console.log(' - Deleted payments');
+
+    // 5. Delete associated students
+    await Student.destroy({ where: { school_id: id }, transaction });
+    console.log(' - Deleted students');
+
+    // 6. Delete associated revenue ledger records
+    await RevenueLedger.destroy({ where: { school_id: id }, transaction });
+    console.log(' - Deleted revenue ledger records');
+
+    // 7. Delete associated subscriptions
+    await SchoolSubscription.destroy({ where: { school_id: id }, transaction });
+    console.log(' - Deleted school subscriptions');
+
+    // 8. Delete associated school plans
+    await SchoolPlan.destroy({ where: { school_id: id }, transaction });
+    console.log(' - Deleted school plans');
+
+    // 9. Finally, delete the school itself
+    await school.destroy({ transaction });
+    console.log(' - Deleted school record');
+
+    await transaction.commit();
 
     res.status(200).json({
-      message: 'School deleted successfully'
+      message: 'School and all associated records deleted successfully'
     });
   } catch (error) {
-    console.error('Error deleting school:', error);
-    res.status(500).json({ message: 'Failed to delete school.' });
+    if (transaction) await transaction.rollback();
+    console.error("DEBUG DELETE SCHOOL ERROR:", error);
+    return res.status(500).json({ 
+      message: "Failed to delete school due to database constraints or other error.",
+      error: error.message, 
+      stack: error.stack 
+    });
   }
 };
 
