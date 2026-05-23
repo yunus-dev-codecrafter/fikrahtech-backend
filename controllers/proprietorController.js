@@ -284,20 +284,35 @@ exports.createClass = async (req, res) => {
  * GET /api/proprietor/classes
  */
 exports.getClasses = async (req, res) => {
-  const section_id = getSectionId(req);
-
-  if (!section_id) {
-    return res.status(400).json({ message: 'section_id is required to fetch classes.' });
-  }
-
   try {
+    const section_id = getSectionId(req);
+    const school_id = req.user.school_id;
+
+    // Build the query where clause
+    const whereClause = {};
+    
+    // UUID validation helper: Basic regex for UUID format
+    const isUuid = (str) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
+    if (section_id) {
+      if (!isUuid(section_id)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid section_id format. Must be a valid UUID.' 
+        });
+      }
+      whereClause.section_id = section_id;
+    }
+
     const classes = await Class.findAll({
-      where: { section_id },
+      where: whereClause,
       include: [{
         model: Section,
         as: 'section',
-        where: { school_id: req.user.school_id }
-      }]
+        where: { school_id: school_id },
+        attributes: ['id', 'name']
+      }],
+      order: [['name', 'ASC']]
     });
 
     res.status(200).json({
@@ -307,7 +322,67 @@ exports.getClasses = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching classes:', error);
-    res.status(500).json({ message: 'Failed to fetch classes.', error: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to fetch classes due to a server error.', 
+      error: error.message 
+    });
+  }
+};
+
+/**
+ * Get all students filtered by section
+ * GET /api/proprietor/students
+ */
+exports.getAllStudents = async (req, res) => {
+  try {
+    const section_id = getSectionId(req);
+    const school_id = req.user.school_id;
+
+    const whereClause = { school_id };
+    
+    // UUID validation helper
+    const isUuid = (str) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
+    if (section_id) {
+      if (!isUuid(section_id)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid section_id format.' 
+        });
+      }
+      whereClause.section_id = section_id;
+    }
+
+    const students = await Student.findAll({
+      where: whereClause,
+      include: [
+        {
+          model: Class,
+          as: 'class',
+          attributes: ['id', 'name']
+        },
+        {
+          model: Section,
+          as: 'section',
+          attributes: ['id', 'name']
+        }
+      ],
+      order: [['first_name', 'ASC'], ['last_name', 'ASC']]
+    });
+
+    res.status(200).json({
+      success: true,
+      count: students.length,
+      students
+    });
+  } catch (error) {
+    console.error('Error fetching students list:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to retrieve student directory.',
+      error: error.message 
+    });
   }
 };
 

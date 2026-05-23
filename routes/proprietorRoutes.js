@@ -28,6 +28,7 @@ router.use(authenticateToken);
 router.use(isProprietor);
 
 // Student & Parent Management
+router.get('/students', proprietorController.getAllStudents);
 router.post('/students', proprietorController.registerStudent);
 
 // Staff Management
