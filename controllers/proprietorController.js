@@ -198,6 +198,51 @@ exports.createStaff = async (req, res) => {
 };
 
 /**
+ * Get all staff members for the school
+ * GET /api/proprietor/staff
+ */
+exports.getAllStaff = async (req, res) => {
+  try {
+    const school_id = req.user.school_id;
+
+    const staff = await User.findAll({
+      where: { 
+        school_id,
+        role: 'staff'
+      },
+      include: [
+        {
+          model: Staff,
+          as: 'staff_profile',
+          include: [
+            {
+              model: Section,
+              as: 'active_section',
+              attributes: ['id', 'name']
+            }
+          ]
+        }
+      ],
+      attributes: { exclude: ['password'] },
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.status(200).json({
+      success: true,
+      count: staff.length,
+      staff
+    });
+  } catch (error) {
+    console.error('Error fetching staff list:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to retrieve staff directory.',
+      error: error.message 
+    });
+  }
+};
+
+/**
  * Create a new class
  * POST /api/proprietor/classes
  */

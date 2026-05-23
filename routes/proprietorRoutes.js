@@ -31,6 +31,7 @@ router.use(isProprietor);
 router.post('/students', proprietorController.registerStudent);
 
 // Staff Management
+router.get('/staff', proprietorController.getAllStaff);
 router.post('/staff', proprietorController.createStaff);
 
 // Classes Management
