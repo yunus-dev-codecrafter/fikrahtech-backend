@@ -8,6 +8,7 @@ const {
   AcademicTerm, 
   sequelize 
 } = require('../models');
+const { Op } = require('sequelize');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
@@ -24,6 +25,8 @@ const getSectionId = (req) => {
 const generateTempPassword = (length = 10) => {
   return crypto.randomBytes(length).toString('hex').slice(0, length);
 };
+
+const isUuid = (str) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
 /**
  * Register a new student and associate with a parent
@@ -290,18 +293,27 @@ exports.getClasses = async (req, res) => {
 
     // Build the query where clause
     const whereClause = {};
-    
-    // UUID validation helper: Basic regex for UUID format
-    const isUuid = (str) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+    let targetSectionId = section_id;
 
-    if (section_id) {
-      if (!isUuid(section_id)) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Invalid section_id format. Must be a valid UUID.' 
+    if (targetSectionId && !isUuid(targetSectionId)) {
+      const foundSection = await Section.findOne({
+        where: {
+          school_id,
+          name: { [Op.iLike]: targetSectionId }
+        }
+      });
+      if (foundSection) {
+        targetSectionId = foundSection.id;
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid section_id. Section not found.'
         });
       }
-      whereClause.section_id = section_id;
+    }
+
+    if (targetSectionId) {
+      whereClause.section_id = targetSectionId;
     }
 
     const classes = await Class.findAll({
@@ -340,18 +352,27 @@ exports.getAllStudents = async (req, res) => {
     const school_id = req.user.school_id;
 
     const whereClause = { school_id };
-    
-    // UUID validation helper
-    const isUuid = (str) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+    let targetSectionId = section_id;
 
-    if (section_id) {
-      if (!isUuid(section_id)) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Invalid section_id format.' 
+    if (targetSectionId && !isUuid(targetSectionId)) {
+      const foundSection = await Section.findOne({
+        where: {
+          school_id,
+          name: { [Op.iLike]: targetSectionId }
+        }
+      });
+      if (foundSection) {
+        targetSectionId = foundSection.id;
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid section_id. Section not found.'
         });
       }
-      whereClause.section_id = section_id;
+    }
+
+    if (targetSectionId) {
+      whereClause.section_id = targetSectionId;
     }
 
     const students = await Student.findAll({
