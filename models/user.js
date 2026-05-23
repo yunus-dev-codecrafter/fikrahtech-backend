@@ -29,7 +29,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false
     },
     role: {
-      type: DataTypes.ENUM('super_admin', 'proprietor'),
+      type: DataTypes.ENUM('super_admin', 'proprietor', 'staff', 'parent'),
       allowNull: false
     },
     name: {
@@ -80,6 +80,18 @@ module.exports = (sequelize, DataTypes) => {
       as: 'school',
       onDelete: 'SET NULL',
       onUpdate: 'CASCADE'
+    });
+
+    User.belongsToMany(models.Student, {
+      through: 'StudentParents',
+      foreignKey: 'parent_id',
+      otherKey: 'student_id',
+      as: 'children'
+    });
+
+    User.hasOne(models.Staff, {
+      foreignKey: 'user_id',
+      as: 'staff_profile'
     });
   };
 

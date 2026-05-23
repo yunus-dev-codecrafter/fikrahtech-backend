@@ -35,10 +35,26 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       comment: 'Student phone number'
     },
-    class: {
-      type: DataTypes.STRING,
+    class_id: {
+      type: DataTypes.UUID,
       allowNull: true,
-      comment: 'Student class or grade'
+      references: {
+        model: 'classes',
+        key: 'id'
+      }
+    },
+    section_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: 'sections',
+        key: 'id'
+      }
+    },
+    profile_data: {
+      type: DataTypes.JSON,
+      defaultValue: {},
+      comment: 'Extended profile data for students'
     },
     admission_number: {
       type: DataTypes.STRING,
@@ -78,6 +94,23 @@ module.exports = (sequelize, DataTypes) => {
     Student.belongsTo(models.School, {
       foreignKey: 'school_id',
       as: 'school'
+    });
+    
+    Student.belongsTo(models.Class, {
+      foreignKey: 'class_id',
+      as: 'class'
+    });
+
+    Student.belongsTo(models.Section, {
+      foreignKey: 'section_id',
+      as: 'section'
+    });
+
+    Student.belongsToMany(models.User, {
+      through: 'StudentParents',
+      foreignKey: 'student_id',
+      otherKey: 'parent_id',
+      as: 'parents'
     });
     
     Student.hasMany(models.Payment, {
